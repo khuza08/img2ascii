@@ -48,13 +48,13 @@ class ASCIIArtConverterApp:
         left_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH)
         
         # image selection
-        tk.Button(left_frame, text="Select Image", command=self.select_image, bg="#4CAF50", fg="white", font=("Arial", 10, "bold"), pady=5).pack(fill=tk.X, padx=10, pady=10)
+        tk.Button(left_frame, text="Select Image", command=self.select_image, bg="#2d2d2d", fg="white", font=("Arial", 10, "bold"), pady=5).pack(fill=tk.X, padx=10, pady=10)
         
         self.image_label = tk.Label(left_frame, text="No image selected",fg="white", bg="#2d2d2d", wraplength=200)
         self.image_label.pack(fill=tk.X, padx=10, pady=5)
         
         # output name
-        tk.Label(left_frame, text="Output Filename:", bg="#2d2d2d").pack(anchor=tk.W, padx=10, pady=(10, 0))
+        tk.Label(left_frame, text="Output Filename:", fg="white",bg="#2d2d2d").pack(anchor=tk.W, padx=10, pady=(10, 0))
         tk.Entry(left_frame, textvariable=self.output_name).pack(fill=tk.X, padx=10, pady=5)
         
         # orientation
@@ -62,14 +62,23 @@ class ASCIIArtConverterApp:
         orientation_frame = tk.Frame(left_frame, bg="#2d2d2d")
         orientation_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        tk.Radiobutton(orientation_frame, text="Portrait (P)", variable=self.orientation, value="P",fg="white", bg="#2d2d2d").pack(side=tk.LEFT, padx=(0, 10))
-        tk.Radiobutton(orientation_frame, text="Landscape (L)", variable=self.orientation, value="L",fg="white", bg="#2d2d2d").pack(side=tk.LEFT)
+        tk.Radiobutton(orientation_frame, text="Portrait (P)", variable=self.orientation, value="P", 
+                       bg="#2d2d2d", fg="#ffffff", activebackground="#3d3d3d", 
+                       activeforeground="#ffffff", selectcolor="#555555", 
+                       highlightbackground="#ffffff").pack(side=tk.LEFT, padx=(0, 10))
+        
+        tk.Radiobutton(orientation_frame, text="Landscape (L)", variable=self.orientation, value="L", 
+                       bg="#2d2d2d", fg="#ffffff", activebackground="#3d3d3d", 
+                       activeforeground="#ffffff", selectcolor="#555555", 
+                       highlightbackground="#ffffff").pack(side=tk.LEFT)
         
         # advanced settings
-        advanced_frame = tk.LabelFrame(left_frame, text="Advanced Settings", bg="#2d2d2d")
+        advanced_frame = tk.LabelFrame(left_frame, text="Advanced Settings", fg="white", bg="#2d2d2d")
         advanced_frame.pack(fill=tk.X, padx=10, pady=10)
         
         # scalefactor
+git
+
         tk.Label(advanced_frame, text="Scale Factor:",fg="white", bg="#2d2d2d").pack(anchor=tk.W, padx=5, pady=(5, 0))
         scale_slider = ttk.Scale(advanced_frame, from_=0.1, to=1.0, variable=self.scaleFactor, orient=tk.HORIZONTAL)
         scale_slider.pack(fill=tk.X, padx=5, pady=5)
@@ -94,7 +103,7 @@ class ASCIIArtConverterApp:
             left_frame, 
             text="Convert to ASCII", 
             command=self.start_conversion, 
-            bg="#2196F3", 
+            bg="#2d2d2d", 
             fg="white", 
             font=("Arial", 10, "bold"), 
             pady=8
@@ -131,7 +140,7 @@ class ASCIIArtConverterApp:
         
         # ASCII image tab
         self.image_frame = tk.Frame(self.result_tabs, bg="#ffffff")
-        self.result_tabs.add(self.image_frame,fg="white", text="ASCII Image")
+        self.result_tabs.add(self.image_frame, text="ASCII Image")
         
         self.image_output = tk.Label(self.image_frame, bg="#ffffff")
         self.image_output.pack(fill=tk.BOTH, expand=True)
