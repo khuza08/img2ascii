@@ -107,7 +107,7 @@ class ASCIIArtConverterApp:
         self.progress.pack_forget()  # Hide initially
         
         # right frame for peview and output
-        right_frame = tk.LabelFrame(main_frame, text="Preview & Result", bg="#2d2d2d", font=("Arial", 12))
+        right_frame = tk.LabelFrame(main_frame, text="Preview & Result",fg="white", bg="#2d2d2d", font=("Arial", 12))
         right_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill=tk.BOTH, expand=True)
         
         # preview image
@@ -115,7 +115,7 @@ class ASCIIArtConverterApp:
         self.preview_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         self.preview_frame.pack_propagate(False)
         
-        self.preview_label = tk.Label(self.preview_frame, bg="#2d2d2d", text="Image preview will appear here")
+        self.preview_label = tk.Label(self.preview_frame,fg="white", bg="#2d2d2d", text="Image preview will appear here")
         self.preview_label.pack(fill=tk.BOTH, expand=True)
         
         # tabs for results
