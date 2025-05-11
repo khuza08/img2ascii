@@ -34,7 +34,7 @@ charArray = list(chars)
 charLength = len(charArray)
 interval = charLength / 256
 
-scaleFactor = 0.1 # the larger value, more heavier and more detailed
+scaleFactor = 0.5 # the larger value, more heavier and more detailed
 oneCharWidth = 10
 oneCharHeight = 18
 
@@ -55,7 +55,7 @@ else:  # portrait
     im = im.resize((int(scaleFactor * width * (oneCharHeight / oneCharWidth)), int(scaleFactor * height)), Image.NEAREST)
 
 # font & size
-fnt = ImageFont.truetype('C:\\Windows\\Fonts\\lucon.ttf', 16)
+fnt = ImageFont.truetype('courier.ttf', 16)
 
 # resize ^
 width, height = im.size
