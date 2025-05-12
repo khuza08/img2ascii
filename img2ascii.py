@@ -10,7 +10,7 @@ import threading
 class ASCIIArtConverterApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("ASCII Art Converter")
+        self.root.title("image2ascii")
         self.root.geometry("900x650")
         self.root.configure(bg="#2d2d2d")
         
@@ -132,17 +132,17 @@ class ASCIIArtConverterApp:
         self.result_tabs.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # ASCII text tab
-        self.text_frame = tk.Frame(self.result_tabs, bg="#ffffff")
+        self.text_frame = tk.Frame(self.result_tabs, bg="#2d2d2d")
         self.result_tabs.add(self.text_frame, text="ASCII Text")
         
-        self.text_output = scrolledtext.ScrolledText(self.text_frame, wrap=tk.WORD, font=("Courier", 8))
+        self.text_output = scrolledtext.ScrolledText(self.text_frame, fg="whiteccc" , bg="#2d2d2d" ,wrap=tk.WORD, font=("Courier", 8))
         self.text_output.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # ASCII image tab
-        self.image_frame = tk.Frame(self.result_tabs, bg="#ffffff")
+        self.image_frame = tk.Frame(self.result_tabs, bg="#2d2d2d")
         self.result_tabs.add(self.image_frame, text="ASCII Image")
         
-        self.image_output = tk.Label(self.image_frame, bg="#ffffff")
+        self.image_output = tk.Label(self.image_frame, bg="#2d2d2d")
         self.image_output.pack(fill=tk.BOTH, expand=True)
         
     def select_image(self):
