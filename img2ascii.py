@@ -77,7 +77,7 @@ class ASCIIArtConverterApp:
         advanced_frame.pack(fill=tk.X, padx=10, pady=10)
         
         # scalefactor
-git
+
 
         tk.Label(advanced_frame, text="Scale Factor:",fg="white", bg="#2d2d2d").pack(anchor=tk.W, padx=5, pady=(5, 0))
         scale_slider = ttk.Scale(advanced_frame, from_=0.1, to=1.0, variable=self.scaleFactor, orient=tk.HORIZONTAL)
