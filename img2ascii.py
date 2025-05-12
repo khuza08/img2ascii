@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageTk
 import math
 import os
 import threading
+import pathlib
 
 class ASCIIArtConverterApp:
     def __init__(self, root):
@@ -135,7 +136,7 @@ class ASCIIArtConverterApp:
         self.text_frame = tk.Frame(self.result_tabs, bg="#2d2d2d")
         self.result_tabs.add(self.text_frame, text="ASCII Text")
         
-        self.text_output = scrolledtext.ScrolledText(self.text_frame, fg="whiteccc" , bg="#2d2d2d" ,wrap=tk.WORD, font=("Courier", 8))
+        self.text_output = scrolledtext.ScrolledText(self.text_frame, fg="white" , bg="#2d2d2d" ,wrap=tk.WORD, font=("Courier", 8))
         self.text_output.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # ASCII image tab
