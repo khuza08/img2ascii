@@ -11,3 +11,6 @@ git clone https://github.com/khuza08/img2ascii.git
 pip install -r requirements.txt (or install dependency manually: pillow, psutil, tkinterdnd2, tk)
 ./img2ascii.py
 ```
+
+### Windows
+too lazy to run it yourself? Just grab the precompiled binary from the [release page](https://github.com/khuza08/img2ascii/releases)
