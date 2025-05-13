@@ -1,5 +1,3 @@
-# huza (khuza08) 2k25
-
 import tkinter as tk
 from tkinter import filedialog, ttk, scrolledtext, messagebox
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageTk
@@ -7,6 +5,7 @@ import math
 import os
 import threading
 import pathlib
+from tkinterdnd2 import DND_FILES, TkinterDnD
 
 class ASCIIArtConverterApp:
     def __init__(self, root):
@@ -48,9 +47,29 @@ class ASCIIArtConverterApp:
         left_frame = tk.LabelFrame(main_frame, text="Input Settings",fg="white", bg="#2d2d2d", font=("Arial", 12))
         left_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH)
         
-        # image selection
+        # Drag and Drop area
+        self.drop_frame = tk.Frame(left_frame, bg="#3d3d3d", height=100, bd=2, relief=tk.GROOVE)
+        self.drop_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        self.drop_label = tk.Label(
+            self.drop_frame, 
+            text="Drop Image Here",
+            fg="white", 
+            bg="#3d3d3d", 
+            font=("Arial", 12, "bold"),
+            padx=20,
+            pady=20
+        )
+        self.drop_label.pack(expand=True, fill=tk.BOTH)
+        
+        # drop zone
+        self.drop_frame.drop_target_register(DND_FILES)
+        self.drop_frame.dnd_bind('<<Drop>>', self.drop_file)
+        
+        # image selection button
         tk.Button(left_frame, text="Select Image", command=self.select_image, bg="#2d2d2d", fg="white", font=("Arial", 10, "bold"), pady=5).pack(fill=tk.X, padx=10, pady=10)
         
+        # img info
         self.image_label = tk.Label(left_frame, text="No image selected",fg="white", bg="#2d2d2d", wraplength=200)
         self.image_label.pack(fill=tk.X, padx=10, pady=5)
         
@@ -78,8 +97,6 @@ class ASCIIArtConverterApp:
         advanced_frame.pack(fill=tk.X, padx=10, pady=10)
         
         # scalefactor
-
-
         tk.Label(advanced_frame, text="Scale Factor:",fg="white", bg="#2d2d2d").pack(anchor=tk.W, padx=5, pady=(5, 0))
         scale_slider = ttk.Scale(advanced_frame, from_=0.1, to=1.0, variable=self.scaleFactor, orient=tk.HORIZONTAL)
         scale_slider.pack(fill=tk.X, padx=5, pady=5)
@@ -145,16 +162,52 @@ class ASCIIArtConverterApp:
         
         self.image_output = tk.Label(self.image_frame, bg="#2d2d2d")
         self.image_output.pack(fill=tk.BOTH, expand=True)
+    
+    def drop_file(self, event):
+        """drag n drop handler event"""
+        file_path = event.data
         
+        # clean file path if availablee
+        if file_path.startswith("{") and file_path.endswith("}"):
+            file_path = file_path[1:-1]
+        
+        # check if multiple files were dropped
+        if " " in file_path:
+            file_paths = file_path.split(" ")
+            # take only the first file
+            file_path = file_paths[0].strip()
+            if file_path.startswith('"') and file_path.endswith('"'):
+                file_path = file_path[1:-1]
+        
+        # check if the file is an valid image file
+        valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif')
+        if file_path.lower().endswith(valid_extensions):
+            self.filename = file_path
+            self.image_label.config(text=os.path.basename(self.filename))
+            self.hide_drop_area()
+            self.update_preview()
+        else:
+            messagebox.showerror("Error", "Only image files are supported!")
+    
     def select_image(self):
+        """open file dialog"""
         self.filename = filedialog.askopenfilename(
             title="Choose an image", 
-            filetypes=[("Image format", "*.jpg *.jpeg *.png")]
+            filetypes=[("Image format", "*.jpg *.jpeg *.png *.bmp *.gif")]
         )
         
         if self.filename:
             self.image_label.config(text=os.path.basename(self.filename))
+            self.hide_drop_area()
             self.update_preview()
+    
+    def hide_drop_area(self):
+        """hide the drop area once an image is selected"""
+        self.drop_frame.pack_forget()
+    
+    def show_drop_area(self):
+        """show the drop area again if needed"""
+        self.drop_frame.pack(fill=tk.X, padx=10, pady=10, before=self.image_label)
         
     def update_preview(self):
         if not self.filename:
@@ -186,7 +239,7 @@ class ASCIIArtConverterApp:
             messagebox.showerror("Error", "Hey!, please enter an output filename!")
             return
             
-        #  convertinggggggg progressss
+        # converting progressss
         self.convert_btn.config(state=tk.DISABLED)
         self.progress.pack(fill=tk.X, padx=10, pady=(0, 10))
         self.progress.start()
@@ -275,9 +328,9 @@ class ASCIIArtConverterApp:
         
         # update image output
         self.image_output.config(image=photo)
-        self.result_img = photo  # Keep reference
+        self.result_img = photo 
         
-        # select result tab
+        # select result tabb
         self.result_tabs.select(0) 
         
         # showw success message
@@ -288,8 +341,18 @@ class ASCIIArtConverterApp:
         self.progress.pack_forget()
         self.convert_btn.config(state=tk.NORMAL)
         self.is_converting = False
+    
+    def reset_interface(self):
+        """reset the interface to allow for new image selection"""
+        self.filename = None
+        self.image_label.config(text="No image selected")
+        self.preview_label.config(image="", text="Image preview will appear here")
+        self.text_output.delete(1.0, tk.END)
+        self.image_output.config(image="")
+        self.show_drop_area()
 
 if __name__ == "__main__":
-    root = tk.Tk()
+   
+    root = TkinterDnD.Tk()
     app = ASCIIArtConverterApp(root)
     root.mainloop()
