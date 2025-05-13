@@ -4,7 +4,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageTk
 import math
 import os
 import threading
-import pathlib
+import gc
+import psutil
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
 class ASCIIArtConverterApp:
@@ -14,12 +15,16 @@ class ASCIIArtConverterApp:
         self.root.geometry("900x650")
         self.root.configure(bg="#2d2d2d")
         
-        # variable
+        # mem tracking
+        self.process = psutil.Process(os.getpid())
+        
+        # variables
         self.filename = None
         self.output_name = tk.StringVar(value="ascii_output")
         self.orientation = tk.StringVar(value="P")
         self.preview_img = None
         self.result_img = None
+        self.original_image = None 
         self.is_converting = False
         
         # ASCII chars
@@ -36,18 +41,31 @@ class ASCIIArtConverterApp:
         self.oneCharWidth = 10
         self.oneCharHeight = 18
         
+        #  memory label for monitoring (debug only)
+        self.memory_label = None
+        
         self.create_widgets()
+        
+        # Set up periodic memory check (debug only)
+        # self.check_memory_usage()
+        
+        # bind cleanup to window close
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
     
     def create_widgets(self):
         # main frame
         main_frame = tk.Frame(self.root, bg="#2d2d2d")
         main_frame.pack(padx=20, pady=20, fill=tk.BOTH, expand=True)
         
+        # add memory label for debugging (optional)
+        # self.memory_label = tk.Label(self.root, text="Memory: 0 MB", fg="white", bg="#2d2d2d")
+        # self.memory_label.pack(side=tk.BOTTOM, pady=5)
+        
         # left frame - Input controls
         left_frame = tk.LabelFrame(main_frame, text="Input Settings",fg="white", bg="#2d2d2d", font=("Arial", 12))
         left_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.BOTH)
         
-        # Drag and Drop area
+        # drag and Drop area
         self.drop_frame = tk.Frame(left_frame, bg="#3d3d3d", height=100, bd=2, relief=tk.GROOVE)
         self.drop_frame.pack(fill=tk.X, padx=10, pady=10)
         
@@ -116,6 +134,9 @@ class ASCIIArtConverterApp:
         saturation_slider = ttk.Scale(advanced_frame, from_=0.5, to=2.0, variable=self.saturation, orient=tk.HORIZONTAL)
         saturation_slider.pack(fill=tk.X, padx=5, pady=5)
         
+        # clean memory  (Optional - for debugging)
+        # tk.Button(left_frame, text="Clean Memory", command=self.force_cleanup, bg="#2d2d2d", fg="white").pack(fill=tk.X, padx=10, pady=5)
+        
         # convert button
         self.convert_btn = tk.Button(
             left_frame, 
@@ -162,9 +183,52 @@ class ASCIIArtConverterApp:
         
         self.image_output = tk.Label(self.image_frame, bg="#2d2d2d")
         self.image_output.pack(fill=tk.BOTH, expand=True)
+
+    ## fixed memleak (using around 6GB of ram!)
+    def check_memory_usage(self):
+        """update memory usage label (for debugging)"""
+        if self.memory_label:
+            memory_mb = self.process.memory_info().rss / (1024 * 1024)
+            self.memory_label.config(text=f"Memory: {memory_mb:.2f} MB")
+        self.root.after(1000, self.check_memory_usage)
+    
+    def force_cleanup(self):
+        """force garbage collection and cleanup (for debugging)"""
+        self.clean_image_references()
+        gc.collect()
+        if self.memory_label:
+            memory_mb = self.process.memory_info().rss / (1024 * 1024)
+            self.memory_label.config(text=f"Memory: {memory_mb:.2f} MB")
+        messagebox.showinfo("Memory Cleanup", "Memory cleanup performed")
+    
+    def clean_image_references(self):
+        """clean up image references to prevent memory leaks"""
+        # clear preview if it's large
+        if hasattr(self, 'preview_label') and self.preview_label.winfo_exists():
+            self.preview_label.config(image='')
+        
+        # close PIL image
+        for attr_name in ['original_image']:
+            if hasattr(self, attr_name) and getattr(self, attr_name) is not None:
+                img = getattr(self, attr_name)
+                try:
+                    img.close()
+                except:
+                    pass
+                setattr(self, attr_name, None)
+        
+        # set references to None to help garbage collection
+        self.preview_img = None
+        self.result_img = None
+        
+        # force garbage collection
+        gc.collect()
     
     def drop_file(self, event):
-        """drag n drop handler event"""
+        """handle the file drop event"""
+        # clean up previous image data
+        self.clean_image_references()
+        
         file_path = event.data
         
         # clean file path if availablee
@@ -190,7 +254,10 @@ class ASCIIArtConverterApp:
             messagebox.showerror("Error", "Only image files are supported!")
     
     def select_image(self):
-        """open file dialog"""
+        """open file dialog to select an image"""
+        # cleanup previous image data
+        self.clean_image_references()
+        
         self.filename = filedialog.askopenfilename(
             title="Choose an image", 
             filetypes=[("Image format", "*.jpg *.jpeg *.png *.bmp *.gif")]
@@ -214,16 +281,26 @@ class ASCIIArtConverterApp:
             return
             
         try:
+            # clean any existing preview
+            if self.preview_img:
+                self.preview_label.config(image='')
+                self.preview_img = None
+            
             # load and resize image for preview
-            img = Image.open(self.filename)
-            img.thumbnail((400, 300))
+            self.original_image = Image.open(self.filename)
+            img_copy = self.original_image.copy()  # Work with a copy
+            img_copy.thumbnail((400, 300))
             
             # convert to PhotoImage
-            photo = ImageTk.PhotoImage(img)
+            photo = ImageTk.PhotoImage(img_copy)
             
             # update preview
             self.preview_label.config(image=photo, text="")
-            self.preview_img = photo 
+            self.preview_img = photo
+            
+            # close the copy to free memory
+            img_copy.close()
+            
         except Exception as e:
             messagebox.showerror("Preview Error", f"Error loading preview: {str(e)}")
     
@@ -245,16 +322,27 @@ class ASCIIArtConverterApp:
         self.progress.start()
         self.is_converting = True
         
+        # clear previous results
+        self.text_output.delete(1.0, tk.END)
+        if hasattr(self, 'image_output') and self.image_output.winfo_exists():
+            self.image_output.config(image='')
+        self.result_img = None
+        
+        gc.collect()
+        
         # start conversion in a separate thread
-        threading.Thread(target=self.convert_to_ascii).start()
+        threading.Thread(target=self.convert_to_ascii, daemon=True).start()
     
     def convert_to_ascii(self):
+        output_image = None
+        im = None
+        
         try:
             # get params
             output_name = self.output_name.get().strip()
             orientation = self.orientation.get()
             
-            # load and enhance image
+            # load and enhance image - use a fresh copy from disk to avoid memleak
             im = Image.open(self.filename)
             im = ImageEnhance.Brightness(im).enhance(self.brightness.get())
             im = ImageEnhance.Contrast(im).enhance(self.contrast.get())
@@ -285,35 +373,52 @@ class ASCIIArtConverterApp:
             pix = im.load()
             
             # output image
-            outputImage = Image.new('RGB', (self.oneCharWidth * width, self.oneCharHeight * height), color=(0, 0, 0))
-            d = ImageDraw.Draw(outputImage)
+            output_image = Image.new('RGB', (self.oneCharWidth * width, self.oneCharHeight * height), color=(0, 0, 0))
+            d = ImageDraw.Draw(output_image)
             
-            # output ascii text
-            text_output = ""
+            # output ascii text - minimize string concatenation for memory efficiency
+            text_lines = []
             
-            # is this math?
+            # process line by line to reduce memory usage
             for i in range(height):
-                line = ""
+                line = []
                 for j in range(width):
                     r, g, b = pix[j, i]
                     h = int(r / 3 + g / 3 + b / 3)
                     pix[j, i] = (h, h, h)
                     char = self.getChar(h)
-                    line += char
+                    line.append(char)
                     d.text((j * self.oneCharWidth, i * self.oneCharHeight), char, font=fnt, fill=(r, g, b))
-                text_output += line + "\n"
+                text_lines.append(''.join(line))
+                
+                # every few lines, check if we should stop (if app is closing)
+                if i % 20 == 0 and not self.is_converting:
+                    raise InterruptedError("Conversion cancelled")
+            
+            text_output = '\n'.join(text_lines)
             
             # save output
-            outputImage.save(f"{output_name}.png")
+            output_image.save(f"{output_name}.png")
             with open(f"{output_name}.txt", "w") as text_file:
                 text_file.write(text_output)
             
-            # update UI with results
-            self.root.after(0, lambda: self.update_results(text_output, outputImage))
+            # update UI with results but keep limited copies in memory
+            disp_image = output_image.copy()  # create copy for display
+            disp_image.thumbnail((600, 400))  # resize for display
             
+            # sched UI updates on main thread
+            self.root.after(0, lambda: self.update_results(text_output, disp_image))
+            
+        except InterruptedError:
+            # conversion was cancelled, do nothing
+            pass
         except Exception as e:
             self.root.after(0, lambda: messagebox.showerror("Conversion Error", f"Error during conversion: {str(e)}"))
         finally:
+            # close images to free memory
+            if im is not None:
+                im.close()
+            
             # hide progress bar if finished
             self.root.after(0, self.finish_conversion)
     
@@ -322,18 +427,30 @@ class ASCIIArtConverterApp:
         self.text_output.delete(1.0, tk.END)
         self.text_output.insert(tk.END, text_output)
         
-        # resize image for display
-        image.thumbnail((600, 400))
-        photo = ImageTk.PhotoImage(image)
+        # cleanup old image reference
+        if self.result_img is not None:
+            self.image_output.config(image='')
+            self.result_img = None
         
-        # update image output
-        self.image_output.config(image=photo)
-        self.result_img = photo 
+        # create photo image for display
+        try:
+            photo = ImageTk.PhotoImage(image)
+            
+            # update image output
+            self.image_output.config(image=photo)
+            self.result_img = photo  # Keep reference
+            
+            # close the thumbnail image now that we have the PhotoImage
+            image.close()
+        except Exception as e:
+            print(f"Error creating result image: {e}")
         
-        # select result tabb
+        # select result tab
         self.result_tabs.select(0) 
         
-        # showw success message
+        gc.collect()
+        
+        # show success message
         messagebox.showinfo("Success", f"Yay, Conversion complete!\nSaved as {self.output_name.get()}.txt and {self.output_name.get()}.png")
     
     def finish_conversion(self):
@@ -341,9 +458,15 @@ class ASCIIArtConverterApp:
         self.progress.pack_forget()
         self.convert_btn.config(state=tk.NORMAL)
         self.is_converting = False
+        
+        gc.collect()
     
     def reset_interface(self):
         """reset the interface to allow for new image selection"""
+        # clean up resources
+        self.clean_image_references()
+        
+        # reset UI elements
         self.filename = None
         self.image_label.config(text="No image selected")
         self.preview_label.config(image="", text="Image preview will appear here")
@@ -351,8 +474,24 @@ class ASCIIArtConverterApp:
         self.image_output.config(image="")
         self.show_drop_area()
 
-if __name__ == "__main__":
-   
+        gc.collect()
+    
+    def on_closing(self):
+        """handle window closing event"""
+        # cancel any running conversion
+        self.is_converting = False
+        
+        # cleanuup resources
+        self.clean_image_references()
+        
+        # destroy the window
+        self.root.destroy()
+
+def main():
+    # use TkinterDnD to enable drag and drop
     root = TkinterDnD.Tk()
     app = ASCIIArtConverterApp(root)
     root.mainloop()
+
+if __name__ == "__main__":
+    main()
