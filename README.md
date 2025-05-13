@@ -14,3 +14,9 @@ pip install -r requirements.txt (or install dependency manually: pillow, psutil,
 
 ### Windows
 too lazy to run it yourself? Just grab the precompiled binary from the [release page](https://github.com/khuza08/img2ascii/releases)
+
+
+
+![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Fira+Code&duration=3000&pause=1000&color=F70CFF&center=true&vCenter=true&width=435&lines=thank+you+for+using+img2ascii!+%F0%9F%92%96;+Drop+a+star+if+you+like+it!+%E2%AD%90)
+
+
