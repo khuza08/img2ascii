@@ -223,7 +223,7 @@ class ASCIIArtConverterApp:
         
         # force garbage collection
         gc.collect()
-    
+        
     def drop_file(self, event):
         """handle the file drop event"""
         # clean up previous image data
@@ -261,7 +261,9 @@ class ASCIIArtConverterApp:
             self.hide_drop_area()
             self.update_preview()
         except Exception as e:
-            messagebox.showerror("Error", f"Invalid image file or format: {str(e)}")
+            err_msg = str(e)
+            self.root.after(0, lambda: messagebox.showerror("Conversion Error", f"Error during conversion: {err_msg}"))
+
 
 
         # check if the file is an valid image file
@@ -404,7 +406,7 @@ class ASCIIArtConverterApp:
             for i in range(height):
                 line = []
                 for j in range(width):
-                    r, g, b = pix[j, i]
+                    r, g, b = pix[j, i][:3]
                     h = int(r / 3 + g / 3 + b / 3)
                     pix[j, i] = (h, h, h)
                     char = self.getChar(h)
@@ -434,7 +436,9 @@ class ASCIIArtConverterApp:
             # conversion was cancelled, do nothing
             pass
         except Exception as e:
-            self.root.after(0, lambda: messagebox.showerror("Conversion Error", f"Error during conversion: {str(e)}"))
+            err_msg = str(e)
+            self.root.after(0, lambda: messagebox.showerror("Conversion Error", f"Error during conversion: {err_msg}"))
+
         finally:
             # close images to free memory
             if im is not None:
