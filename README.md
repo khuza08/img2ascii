@@ -11,12 +11,7 @@ git clone https://github.com/khuza08/img2ascii.git
 pip install -r requirements.txt (or install dependency manually: pillow, psutil, tkinterdnd2, tk)
 ./img2ascii.py
 ```
-
 ### Windows
 too lazy to run it yourself? just grab the precompiled binary from the [release page](https://github.com/khuza08/img2ascii/releases)
 
-
-
-![Typing SVG](https://readme-typing-svg.herokuapp.com?font=Fira+Code&duration=3000&pause=1000&color=F70CFF&center=true&vCenter=true&width=435&lines=+Drop+a+star+if+you+like+it!+%E2%AD%90)
-
-
+#### <i>let me know if there any problems.</i>
