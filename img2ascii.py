@@ -228,7 +228,6 @@ class ASCIIArtConverterApp:
         """handle the file drop event"""
         # clean up previous image data
         self.clean_image_references()
-        
         file_path = event.data
         
         # clean file path if availablee
@@ -236,13 +235,35 @@ class ASCIIArtConverterApp:
             file_path = file_path[1:-1]
         
         # check if multiple files were dropped
-        if " " in file_path:
+        if " " in file_path and not os.path.exists(file_path):
             file_paths = file_path.split(" ")
-            # take only the first file
-            file_path = file_paths[0].strip()
-            if file_path.startswith('"') and file_path.endswith('"'):
-                file_path = file_path[1:-1]
+            for path in file_paths:
+                cleaned_path = path.strip()
+                if cleaned_path.startswith('"') and cleaned_path.endswith('"'):
+                    cleaned_path = cleaned_path[1:-1]
+                if os.path.exists(cleaned_path):
+                    file_path = cleaned_path
+                    break
         
+        # check if the file actually existsz
+        if not os.path.exists(file_path):
+            messagebox.showerror("Error", f"File not found: {file_path}")
+            return
+
+        #try to open file wit PiL to verify valid images
+        try:
+            test_img = Image.open(file_path)
+            test_img.verify()
+            test_img.close()
+
+            self.filename = file_path
+            self.image_label.config(text=os.path.basename(self.filename))
+            self.hide_drop_area()
+            self.update_preview()
+        except Exception as e:
+            messagebox.showerror("Error", f"Invalid image file or format: {str(e)}")
+
+
         # check if the file is an valid image file
         valid_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif')
         if file_path.lower().endswith(valid_extensions):
