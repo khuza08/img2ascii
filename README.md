@@ -12,6 +12,4 @@ pip install -r requirements.txt (or install dependency manually: pillow, psutil,
 ./img2ascii.py
 ```
 ### Windows
-too lazy to run it yourself? just grab the precompiled binary from the [release page](https://github.com/khuza08/img2ascii/releases)
-
-#### <i>let me know if there any problems.</i>
+[release page](https://github.com/khuza08/img2ascii/releases)
