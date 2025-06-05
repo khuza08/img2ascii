@@ -11,7 +11,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 class ASCIIArtConverterApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("image2ascii")
+        self.root.title("image2ascii by khuza08")
         self.root.geometry("900x650")
         self.root.configure(bg="#2d2d2d")
         
