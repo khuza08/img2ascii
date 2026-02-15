@@ -185,17 +185,16 @@ onMounted(async () => {
       </div>
 
       <button 
-        class="mt-auto bg-white text-black border-none py-4 rounded-full font-black text-[10px] uppercase tracking-[0.2em] cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-100 disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed shadow-2xl flex items-center justify-center gap-2"
+        class="mt-auto bg-neutral-900 text-neutral-200 border-none py-4 rounded-full font-black text-[10px] uppercase tracking-[0.2em] cursor-pointer disabled:cursor-not-allowed transition-all duration-300 hover:bg-neutral-800 flex items-center justify-center gap-2"
         :disabled="!filepath || isConverting" 
         @click="resultImagePath ? openResultImage() : convert()"
       >
         <template v-if="!isConverting">
           <template v-if="resultImagePath">
-            <ExternalLink :size="16" />
             <span>Open Result</span>
           </template>
           <template v-else>
-            <span>{{ filepath ? 'Live Mode Ready' : 'Select Image' }}</span>
+            <span>{{ filepath ? 'Live Mode Ready' : 'Select Image First' }}</span>
           </template>
         </template>
         <RefreshCw v-else class="w-4 h-4 animate-spin" />
@@ -208,7 +207,7 @@ onMounted(async () => {
         <div class="flex-1 flex justify-center items-center">
           <div v-if="displayImagePath" class="flex flex-col items-center gap-4 flex-1">
             <img :src="displayImagePath" alt="ASCII Art" class="max-w-full max-h-[60vh] lg:max-h-[70vh] object-contain rounded-lg shadow-2xl border border-white/10" />
-            <div class="bg-white/2 border border-white/10 rounded-xl px-4 py-2 text-[10px] text-neutral-400">
+            <div class="bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2 text-[10px] text-neutral-400">
               <code>{{ resultImagePath }}</code>
             </div>
           </div>
