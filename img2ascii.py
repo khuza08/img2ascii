@@ -6,6 +6,7 @@ import os
 import threading
 import gc
 import psutil
+import numpy as np
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
 class ASCIIArtConverterApp:
@@ -393,29 +394,53 @@ class ASCIIArtConverterApp:
             
             # get resized dimensions
             width, height = im.size
-            pix = im.load()
             
-            # output image
+            # Convert to numpy array for faster processing
+            im_np = np.array(im.convert('RGB'))
+            
+            # Calculate brightness (grayscale) using numpy
+            # formula: 0.299 R + 0.587 G + 0.114 B (standard luminance)
+            # here we use the app's previous simple average for consistency, or standard
+            r, g, b = im_np[:,:,0], im_np[:,:,1], im_np[:,:,2]
+            grayscale = (r.astype(np.uint16) + g.astype(np.uint16) + b.astype(np.uint16)) // 3
+            
+            # Map grayscale to ASCII characters using numpy indexing
+            # interval = self.charLength / 256
+            indices = (grayscale * self.interval).astype(np.int32)
+            indices = np.clip(indices, 0, self.charLength - 1)
+            
+            # Create a character array from the map
+            ascii_chars_np = np.array(self.charArray)
+            char_mapped = ascii_chars_np[indices]
+            
+            # Output image creation
             output_image = Image.new('RGB', (self.oneCharWidth * width, self.oneCharHeight * height), color=(0, 0, 0))
             d = ImageDraw.Draw(output_image)
             
-            # output ascii text - minimize string concatenation for memory efficiency
+            # Optimization: Process per line for drawing and text file
             text_lines = []
-            
-            # process line by line to reduce memory usage
             for i in range(height):
-                line = []
-                for j in range(width):
-                    r, g, b = pix[j, i][:3]
-                    h = int(r / 3 + g / 3 + b / 3)
-                    pix[j, i] = (h, h, h)
-                    char = self.getChar(h)
-                    line.append(char)
-                    d.text((j * self.oneCharWidth, i * self.oneCharHeight), char, font=fnt, fill=(r, g, b))
-                text_lines.append(''.join(line))
+                line_chars = "".join(char_mapped[i])
+                text_lines.append(line_chars)
                 
-                # every few lines, check if we should stop (if app is closing)
-                if i % 20 == 0 and not self.is_converting:
+                # Further optimization: Group consecutive characters with the same color
+                # to reduce d.text calls.
+                if width > 0:
+                    j = 0
+                    while j < width:
+                        start_j = j
+                        color = tuple(im_np[i, j])
+                        # Find how many following characters have the same color
+                        while j + 1 < width and tuple(im_np[i, j+1]) == color:
+                            j += 1
+                        
+                        # Draw the group of characters
+                        group_text = "".join(char_mapped[i, start_j:j+1])
+                        d.text((start_j * self.oneCharWidth, i * self.oneCharHeight), group_text, font=fnt, fill=color)
+                        j += 1
+                
+                # Check for cancellation
+                if i % 50 == 0 and not self.is_converting:
                     raise InterruptedError("Conversion cancelled")
             
             text_output = '\n'.join(text_lines)
@@ -440,7 +465,11 @@ class ASCIIArtConverterApp:
             self.root.after(0, lambda: messagebox.showerror("Conversion Error", f"Error during conversion: {err_msg}"))
 
         finally:
-            # close images to free memory
+            # close images and clear large numpy arrays
+            im_np = None
+            grayscale = None
+            indices = None
+            char_mapped = None
             if im is not None:
                 im.close()
             

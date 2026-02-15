@@ -2,3 +2,4 @@ pillow
 psutil
 tkinterdnd2
 tk
+numpy
