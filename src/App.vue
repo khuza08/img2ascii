@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -11,7 +11,8 @@ import {
   Contrast, 
   Droplet, 
   RefreshCw, 
-  ExternalLink 
+  ExternalLink,
+  ChevronRight
 } from "lucide-vue-next";
 
 interface ConversionResult {
@@ -31,6 +32,12 @@ const isConverting = ref(false);
 
 const resultImagePath = ref("");
 const displayImagePath = ref("");
+
+const pathBreadcrumbs = computed(() => {
+  if (!resultImagePath.value) return [];
+  // Split by / or \ depending on platform, but handle both for safety
+  return resultImagePath.value.split(/[/\\]/).filter(s => s !== "");
+});
 
 function getSliderStyle(value: number, min: number, max: number) {
   const percentage = ((value - min) / (max - min)) * 100;
@@ -211,8 +218,14 @@ onMounted(async () => {
     <!-- Main Content -->
     <main class="flex-1 flex flex-col glass-panel rounded-[20px] lg:rounded-[28px] overflow-hidden min-h-[500px] relative">
       <div class="flex-1 flex flex-col p-6 min-h-0">
-        <div v-if="resultImagePath" class="absolute top-6 left-6 z-10 bg-neutral-900/80 backdrop-blur border border-neutral-800 rounded-2xl px-4 py-2 text-[10px] text-neutral-400 shadow-2xl">
-          <code>{{ resultImagePath }}</code>
+        <!-- Floating Breadcrumbs Label -->
+        <div v-if="pathBreadcrumbs.length > 0" class="absolute top-6 left-6 z-10 bg-neutral-900/80 backdrop-blur border border-neutral-800 rounded-2xl px-4 py-2 text-[10px] text-neutral-400 shadow-2xl flex items-center gap-1.5">
+          <template v-for="(segment, index) in pathBreadcrumbs" :key="index">
+            <span :class="{ 'text-neutral-200 font-bold': index === pathBreadcrumbs.length - 1 }">
+              {{ segment }}
+            </span>
+            <ChevronRight v-if="index < pathBreadcrumbs.length - 1" :size="10" class="text-neutral-600" />
+          </template>
         </div>
 
         <div class="flex-1 flex justify-center items-center">
