@@ -11,7 +11,6 @@ import {
   Contrast, 
   Droplet, 
   RefreshCw, 
-  ExternalLink,
   ChevronRight
 } from "lucide-vue-next";
 
