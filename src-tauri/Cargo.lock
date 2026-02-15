@@ -2078,6 +2078,7 @@ name = "img2ascii-tauri"
 version = "0.1.0"
 dependencies = [
  "ab_glyph",
+ "base64 0.22.1",
  "image",
  "imageproc",
  "serde",

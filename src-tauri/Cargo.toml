@@ -22,6 +22,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+base64 = "0.22.1"
 image = "0.25.9"
 ab_glyph = "0.2.32"
 imageproc = { version = "0.26.0", features = ["default"] }

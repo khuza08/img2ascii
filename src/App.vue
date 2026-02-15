@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -17,6 +17,7 @@ interface ConversionParams {
 interface ConversionResult {
   text: string;
   image_path: string;
+  image_base64: string;
   txt_path: string;
 }
 
@@ -31,21 +32,12 @@ const saturation = ref(1.3);
 const isConverting = ref(false);
 const asciiText = ref("");
 const resultImagePath = ref("");
+const displayImagePath = ref("");
 const activeTab = ref("text");
 
-async function selectImage() {
-  const selected = await open({
-    multiple: false,
-    filters: [{
-      name: 'Image',
-      extensions: ['png', 'jpg', 'jpeg', 'bmp', 'gif']
-    }]
-  });
-  if (selected && !Array.isArray(selected)) {
-    filepath.value = selected;
-    filename.value = selected.split(/[\/\\]/).pop() || selected;
-  }
-}
+// Debounce logic for live editing
+let debounceTimer: number | null = null;
+const DEBOUNCE_DELAY = 150; // ms
 
 async function convert() {
   if (!filepath.value) return;
@@ -66,12 +58,46 @@ async function convert() {
     
     asciiText.value = result.text;
     resultImagePath.value = result.image_path;
-    activeTab.value = "text";
+    displayImagePath.value = result.image_base64; // Use base64 directly
   } catch (error) {
     console.error(error);
-    alert("Conversion failed: " + error);
   } finally {
     isConverting.value = false;
+  }
+}
+
+function triggerLiveConvert() {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    convert();
+  }, DEBOUNCE_DELAY);
+}
+
+// Watchers for live editing
+watch([orientation, scaleFactor, brightness, contrast, saturation], () => {
+  if (filepath.value) {
+    triggerLiveConvert();
+  }
+});
+
+// Watch filepath to trigger initial conversion
+watch(filepath, () => {
+  if (filepath.value) {
+    convert();
+  }
+});
+
+async function selectImage() {
+  const selected = await open({
+    multiple: false,
+    filters: [{
+      name: 'Image',
+      extensions: ['png', 'jpg', 'jpeg', 'bmp', 'gif']
+    }]
+  });
+  if (selected && !Array.isArray(selected)) {
+    filepath.value = selected;
+    filename.value = selected.split(/[\/\\]/).pop() || selected;
   }
 }
 
@@ -160,7 +186,9 @@ onMounted(() => {
       </div>
 
       <button class="convert-btn" :disabled="!filepath || isConverting" @click="convert">
-        <span v-if="!isConverting">Convert (Rust Engine)</span>
+        <span v-if="!isConverting">
+          {{ filepath ? 'Live Mode Active' : 'Convert (Rust Engine)' }}
+        </span>
         <span v-else class="loader"></span>
       </button>
     </aside>
@@ -183,9 +211,11 @@ onMounted(() => {
           <div v-else class="placeholder">Result will appear here</div>
         </div>
         <div v-else class="image-viewer">
-          <div v-if="resultImagePath" class="image-path-info">
-            <p>ASCII Image saved to:</p>
-            <code>{{ resultImagePath }}</code>
+          <div v-if="displayImagePath" class="image-preview-container">
+            <img :src="displayImagePath" alt="ASCII Art" class="ascii-image" />
+            <div class="image-path-info mini">
+              <code>{{ resultImagePath }}</code>
+            </div>
           </div>
           <div v-else class="placeholder">Result will appear here</div>
         </div>
@@ -195,6 +225,7 @@ onMounted(() => {
 </template>
 
 <style>
+/* (Existing styles start here) */
 :root {
   --bg-dark: #0f172a;
   --bg-sidebar: rgba(15, 23, 42, 0.8);
@@ -501,6 +532,27 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 6px;
   word-break: break-all;
   color: var(--accent);
+}
+.image-path-info.mini {
+  padding: 8px 16px;
+  font-size: 0.75rem;
+}
+
+.image-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.ascii-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--glass-border);
 }
 
 .loader {

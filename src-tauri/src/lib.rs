@@ -20,6 +20,7 @@ pub struct ConversionParams {
 pub struct ConversionResult {
     text: String,
     image_path: String,
+    image_base64: String, // Added for reliable frontend preview
     txt_path: String,
 }
 
@@ -166,6 +167,15 @@ async fn convert_image(params: ConversionParams) -> Result<ConversionResult, Str
     output_img.save(&png_path)
         .map_err(|e| format!("Failed to save image: {e}"))?;
         
+    // Encode to base64 for reliable live preview
+    let mut image_data = Vec::new();
+    let mut cursor = std::io::Cursor::new(&mut image_data);
+    output_img.write_to(&mut cursor, image::ImageFormat::Png)
+        .map_err(|e| format!("Failed to encode image to PNG for base64: {e}"))?;
+    
+    use base64::{Engine as _, engine::general_purpose};
+    let image_base64 = general_purpose::STANDARD.encode(&image_data);
+
     let mut f = File::create(&txt_path)
         .map_err(|e| format!("Failed to create txt file: {e}"))?;
     f.write_all(ascii_text.as_bytes())
@@ -174,6 +184,7 @@ async fn convert_image(params: ConversionParams) -> Result<ConversionResult, Str
     Ok(ConversionResult {
         text: ascii_text,
         image_path: std::env::current_dir().unwrap().join(&png_path).to_string_lossy().to_string(),
+        image_base64: format!("data:image/png;base64,{}", image_base64),
         txt_path: std::env::current_dir().unwrap().join(&txt_path).to_string_lossy().to_string(),
     })
 }
