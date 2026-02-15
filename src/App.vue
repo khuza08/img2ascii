@@ -152,7 +152,7 @@ onMounted(async () => {
                <Maximize :size="14" />
                <span>Scale Factor</span>
             </div>
-            <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ scaleFactor.toFixed(2) }}</span>
+            <span class="text-white font-mono px-2 py-0.5 rounded">{{ scaleFactor.toFixed(2) }}</span>
           </div>
           <input type="range" v-model.number="scaleFactor" min="0.05" max="1.0" step="0.01" @change="convert" class="w-full h-1 rounded-full appearance-none accent-white cursor-pointer" :style="getSliderStyle(scaleFactor, 0.05, 1.0)" />
         </div>
@@ -163,7 +163,7 @@ onMounted(async () => {
                <Sun :size="14" />
                <span>Brightness</span>
             </div>
-            <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ brightness.toFixed(2) }}</span>
+            <span class="text-white font-mono px-2 py-0.5 rounded">{{ brightness.toFixed(2) }}</span>
           </div>
           <input type="range" v-model.number="brightness" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 rounded-full appearance-none accent-white cursor-pointer" :style="getSliderStyle(brightness, 0.5, 2.0)" />
         </div>
@@ -174,7 +174,7 @@ onMounted(async () => {
                <Contrast :size="14" />
                <span>Contrast</span>
             </div>
-            <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ contrast.toFixed(2) }}</span>
+            <span class="text-white font-mono px-2 py-0.5 rounded">{{ contrast.toFixed(2) }}</span>
           </div>
           <input type="range" v-model.number="contrast" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 rounded-full appearance-none accent-white cursor-pointer" :style="getSliderStyle(contrast, 0.5, 2.0)" />
         </div>
@@ -185,7 +185,7 @@ onMounted(async () => {
                <Droplet :size="14" />
                <span>Saturation</span>
             </div>
-            <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ saturation.toFixed(2) }}</span>
+            <span class="text-white font-mono px-2 py-0.5 rounded">{{ saturation.toFixed(2) }}</span>
           </div>
           <input type="range" v-model.number="saturation" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 rounded-full appearance-none accent-white cursor-pointer" :style="getSliderStyle(saturation, 0.5, 2.0)" />
         </div>
@@ -209,14 +209,15 @@ onMounted(async () => {
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col glass-panel rounded-[20px] lg:rounded-[28px] overflow-hidden min-h-[500px]">
+    <main class="flex-1 flex flex-col glass-panel rounded-[20px] lg:rounded-[28px] overflow-hidden min-h-[500px] relative">
       <div class="flex-1 flex flex-col p-6 min-h-0">
+        <div v-if="resultImagePath" class="absolute top-6 left-6 z-10 bg-neutral-900/80 backdrop-blur border border-neutral-800 rounded-2xl px-4 py-2 text-[10px] text-neutral-400 shadow-2xl">
+          <code>{{ resultImagePath }}</code>
+        </div>
+
         <div class="flex-1 flex justify-center items-center">
           <div v-if="displayImagePath" class="flex flex-col items-center gap-4 flex-1">
             <img :src="displayImagePath" alt="ASCII Art" class="max-w-full max-h-[60vh] lg:max-h-[70vh] object-contain rounded-lg shadow-2xl border border-white/10" />
-            <div class="bg-neutral-900 border border-neutral-800 rounded-xl px-4 py-2 text-[10px] text-neutral-400">
-              <code>{{ resultImagePath }}</code>
-            </div>
           </div>
           <div v-else class="flex-1 flex justify-center items-center text-neutral-500 italic text-sm text-center p-10">
             {{ isConverting ? 'Processing Image...' : 'Select an image to start' }}
