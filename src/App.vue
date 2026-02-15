@@ -32,6 +32,13 @@ const isConverting = ref(false);
 const resultImagePath = ref("");
 const displayImagePath = ref("");
 
+function getSliderStyle(value: number, min: number, max: number) {
+  const percentage = ((value - min) / (max - min)) * 100;
+  return {
+    background: `linear-gradient(to right, #e5e5e5 ${percentage}%, #262626 ${percentage}%)`
+  };
+}
+
 async function convert() {
   if (!filepath.value) return;
   
@@ -138,7 +145,7 @@ onMounted(async () => {
         />
       </div>
 
-      <div class="flex flex-col gap-5 py-2">
+      <div class="flex flex-col gap-5 py-6 bg-neutral-900 rounded-xl px-4">
         <div class="flex flex-col gap-2">
           <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
             <div class="flex items-center gap-2 text-neutral-200">
@@ -147,7 +154,7 @@ onMounted(async () => {
             </div>
             <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ scaleFactor.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="scaleFactor" min="0.05" max="1.0" step="0.01" @change="convert" class="w-full h-1 bg-neutral-800 rounded-full appearance-none accent-white cursor-pointer" />
+          <input type="range" v-model.number="scaleFactor" min="0.05" max="1.0" step="0.01" @change="convert" class="w-full h-1 rounded-full appearance-none accent-white cursor-pointer" :style="getSliderStyle(scaleFactor, 0.05, 1.0)" />
         </div>
 
         <div class="flex flex-col gap-2">
@@ -158,7 +165,7 @@ onMounted(async () => {
             </div>
             <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ brightness.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="brightness" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 bg-neutral-800 rounded-full appearance-none accent-white cursor-pointer" />
+          <input type="range" v-model.number="brightness" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 rounded-full appearance-none accent-white cursor-pointer" :style="getSliderStyle(brightness, 0.5, 2.0)" />
         </div>
 
         <div class="flex flex-col gap-2">
@@ -169,7 +176,7 @@ onMounted(async () => {
             </div>
             <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ contrast.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="contrast" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 bg-neutral-800 rounded-full appearance-none accent-white cursor-pointer" />
+          <input type="range" v-model.number="contrast" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 rounded-full appearance-none accent-white cursor-pointer" :style="getSliderStyle(contrast, 0.5, 2.0)" />
         </div>
 
         <div class="flex flex-col gap-2">
@@ -180,7 +187,7 @@ onMounted(async () => {
             </div>
             <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ saturation.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="saturation" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 bg-neutral-800 rounded-full appearance-none accent-white cursor-pointer" />
+          <input type="range" v-model.number="saturation" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 rounded-full appearance-none accent-white cursor-pointer" :style="getSliderStyle(saturation, 0.5, 2.0)" />
         </div>
       </div>
 
