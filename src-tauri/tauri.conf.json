@@ -16,7 +16,7 @@
         "title": "img2ascii-tauri",
         "width": 800,
         "height": 600,
-        "backgroundColor": "#0f172a",
+        "backgroundColor": "#000000",
         "visible": false
       }
     ],

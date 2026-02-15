@@ -4,6 +4,15 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openPath } from "@tauri-apps/plugin-opener";
+import { 
+  FolderOpen, 
+  Maximize, 
+  Sun, 
+  Contrast, 
+  Droplet, 
+  RefreshCw, 
+  ExternalLink 
+} from "lucide-vue-next";
 
 interface ConversionResult {
   image_path: string;
@@ -22,8 +31,6 @@ const isConverting = ref(false);
 
 const resultImagePath = ref("");
 const displayImagePath = ref("");
-
-
 
 async function convert() {
   if (!filepath.value) return;
@@ -60,11 +67,6 @@ async function openResultImage() {
   }
 }
 
-// Initial convert on load logic elsewhere...
-
-
-
-// Watch filepath to trigger initial conversion
 watch(filepath, () => {
   if (filepath.value) {
     convert();
@@ -86,7 +88,6 @@ async function selectImage() {
 }
 
 onMounted(async () => {
-  // Correct method name for Tauri v2 is onDragDropEvent
   (getCurrentWindow() as any).onDragDropEvent((event: any) => {
     if (event.payload.type === 'drop') {
       const droppedPath = event.payload.paths[0];
@@ -97,92 +98,121 @@ onMounted(async () => {
     }
   });
 
-  // Show window once UI is ready (Anti-Flashbang)
   await getCurrentWindow().show();
 });
 </script>
 
 <template>
-  <div class="app-container">
-    <aside class="sidebar">
-      <div class="logo-section">
-        <h1>img2ascii</h1>
-        <p class="subtitle">by khuza08 (Pure Rust)</p>
-      </div>
-
-      <div class="control-group">
-        <label>Input</label>
-        <div class="file-picker" @click="selectImage">
-          <div class="icon">📁</div>
-          <div class="file-info">
-            <span class="file-name">{{ filename }}</span>
-          </div>
+  <div class="flex flex-col lg:flex-row h-screen w-screen p-2 lg:p-3 gap-2 lg:gap-3 bg-black box-border overflow-y-auto lg:overflow-hidden font-sans">
+    <!-- Sidebar -->
+    <aside class="w-full lg:w-80 glass-panel p-6 flex flex-col gap-5 shrink-0 rounded-[20px] lg:rounded-[28px] overflow-y-visible lg:overflow-y-auto">
+      <div class="logo-section flex items-center gap-3">
+        <div class="w-10 h-10 bg-neutral-200 rounded-xl flex items-center justify-center text-black shrink-0">
+          <RefreshCw :size="20" :class="{ 'animate-spin': isConverting }" />
+        </div>
+        <div>
+          <h1 class="m-0 text-xl font-extrabold tracking-tighter text-neutral-200">img2ascii</h1>
+          <p class="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">by khuza08</p>
         </div>
       </div>
 
-      <div class="control-group">
-        <label>Output Filename</label>
-        <input v-model="outputName" placeholder="filename" class="text-input" />
+      <div class="flex flex-col gap-2">
+        <label class="text-[10px] uppercase tracking-widest text-neutral-500 font-bold">Source Image</label>
+        <div 
+          class="bg-neutral-900 border border-neutral-800 rounded-full py-2.5 px-5 flex items-center gap-3 cursor-pointer transition-all duration-300 hover:border-neutral-700 hover:bg-neutral-800/50 group"
+          @click="selectImage"
+        >
+          <FolderOpen :size="18" class="text-neutral-500 group-hover:text-white transition-colors" />
+          <div class="flex flex-col overflow-hidden">
+            <span class="text-xs text-neutral-300 truncate font-medium">{{ filename }}</span>
+          </div>
+        </div>
       </div>
 
+      <div class="flex flex-col gap-2">
+        <label class="text-[10px] uppercase tracking-widest text-neutral-500 font-bold">Output Filename</label>
+        <input 
+          v-model="outputName" 
+          placeholder="filename" 
+          class="bg-neutral-900 border border-neutral-800 rounded-full py-2.5 px-5 text-white text-xs outline-none transition-all focus:border-neutral-700 focus:bg-neutral-800/50" 
+        />
+      </div>
 
-
-      <div class="control-group sliders">
-        <div class="slider-item">
-          <div class="slider-header">
-            <span>Scale Factor</span>
-            <span class="value">{{ scaleFactor.toFixed(2) }}</span>
+      <div class="flex flex-col gap-5 py-2">
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+            <div class="flex items-center gap-2 text-neutral-200">
+               <Maximize :size="14" />
+               <span>Scale Factor</span>
+            </div>
+            <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ scaleFactor.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="scaleFactor" min="0.05" max="1.0" step="0.01" @change="convert" />
+          <input type="range" v-model.number="scaleFactor" min="0.05" max="1.0" step="0.01" @change="convert" class="w-full h-1 bg-neutral-800 rounded-full appearance-none accent-white cursor-pointer" />
         </div>
 
-        <div class="slider-item">
-          <div class="slider-header">
-            <span>Brightness</span>
-            <span class="value">{{ brightness.toFixed(2) }}</span>
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+            <div class="flex items-center gap-2 text-neutral-200">
+               <Sun :size="14" />
+               <span>Brightness</span>
+            </div>
+            <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ brightness.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="brightness" min="0.5" max="2.0" step="0.05" @change="convert" />
+          <input type="range" v-model.number="brightness" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 bg-neutral-800 rounded-full appearance-none accent-white cursor-pointer" />
         </div>
 
-        <div class="slider-item">
-          <div class="slider-header">
-            <span>Contrast</span>
-            <span class="value">{{ contrast.toFixed(2) }}</span>
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+            <div class="flex items-center gap-2 text-neutral-200">
+               <Contrast :size="14" />
+               <span>Contrast</span>
+            </div>
+            <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ contrast.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="contrast" min="0.5" max="2.0" step="0.05" @change="convert" />
+          <input type="range" v-model.number="contrast" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 bg-neutral-800 rounded-full appearance-none accent-white cursor-pointer" />
         </div>
 
-        <div class="slider-item">
-          <div class="slider-header">
-            <span>Saturation</span>
-            <span class="value">{{ saturation.toFixed(2) }}</span>
+        <div class="flex flex-col gap-2">
+          <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider">
+            <div class="flex items-center gap-2 text-neutral-200">
+               <Droplet :size="14" />
+               <span>Saturation</span>
+            </div>
+            <span class="text-white font-mono bg-white/5 px-2 py-0.5 rounded">{{ saturation.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="saturation" min="0.5" max="2.0" step="0.05" @change="convert" />
+          <input type="range" v-model.number="saturation" min="0.5" max="2.0" step="0.05" @change="convert" class="w-full h-1 bg-neutral-800 rounded-full appearance-none accent-white cursor-pointer" />
         </div>
       </div>
 
       <button 
-        class="convert-btn" 
+        class="mt-auto bg-white text-black border-none py-4 rounded-full font-black text-[10px] uppercase tracking-[0.2em] cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-100 disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed shadow-2xl flex items-center justify-center gap-2"
         :disabled="!filepath || isConverting" 
         @click="resultImagePath ? openResultImage() : convert()"
       >
-        <span v-if="!isConverting">
-          {{ resultImagePath ? 'Open Result Image' : (filepath ? 'Live Mode Active' : 'Convert (Rust Engine)') }}
-        </span>
-        <span v-else class="loader"></span>
+        <template v-if="!isConverting">
+          <template v-if="resultImagePath">
+            <ExternalLink :size="16" />
+            <span>Open Result</span>
+          </template>
+          <template v-else>
+            <span>{{ filepath ? 'Live Mode Ready' : 'Select Image' }}</span>
+          </template>
+        </template>
+        <RefreshCw v-else class="w-4 h-4 animate-spin" />
       </button>
     </aside>
 
-    <main class="content">
-      <div class="viewer-container">
-        <div class="image-viewer">
-          <div v-if="displayImagePath" class="image-preview-container">
-            <img :src="displayImagePath" alt="ASCII Art" class="ascii-image" />
-            <div class="image-path-info mini">
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col glass-panel rounded-[20px] lg:rounded-[28px] overflow-hidden min-h-[500px]">
+      <div class="flex-1 flex flex-col p-6 min-h-0">
+        <div class="flex-1 flex justify-center items-center">
+          <div v-if="displayImagePath" class="flex flex-col items-center gap-4 flex-1">
+            <img :src="displayImagePath" alt="ASCII Art" class="max-w-full max-h-[60vh] lg:max-h-[70vh] object-contain rounded-lg shadow-2xl border border-white/10" />
+            <div class="bg-white/2 border border-white/10 rounded-xl px-4 py-2 text-[10px] text-neutral-400">
               <code>{{ resultImagePath }}</code>
             </div>
           </div>
-          <div v-else class="placeholder">
+          <div v-else class="flex-1 flex justify-center items-center text-neutral-500 italic text-sm text-center p-10">
             {{ isConverting ? 'Processing Image...' : 'Select an image to start' }}
           </div>
         </div>
@@ -191,353 +221,6 @@ onMounted(async () => {
   </div>
 </template>
 
-<style>
-/* (Existing styles start here) */
-:root {
-  --bg-dark: #0f172a;
-  --bg-sidebar: rgba(15, 23, 42, 0.8);
-  --accent: #10b981; /* Green for Rust */
-  --accent-glow: rgba(16, 185, 129, 0.3);
-  --text-main: #f8fafc;
-  --text-dim: #94a3b8;
-  --glass-border: rgba(255, 255, 255, 0.1);
-}
-
-body {
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-main);
-  overflow: hidden;
-}
-
-.app-container {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 320px;
-  background: var(--bg-sidebar);
-  backdrop-filter: blur(20px);
-  border-right: 1px solid var(--glass-border);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  box-sizing: border-box;
-}
-
-.logo-section h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  background: linear-gradient(to right, #10b981, #3b82f6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.subtitle {
-  margin: 4px 0 0;
-  font-size: 0.8rem;
-  color: var(--text-dim);
-}
-
-.control-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.control-group label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
-  font-weight: 600;
-}
-
-.file-picker {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed var(--glass-border);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.file-picker:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--accent);
-  box-shadow: 0 0 20px var(--accent-glow);
-}
-
-.icon {
-  font-size: 1.5rem;
-}
-
-.file-info {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.file-name {
-  font-size: 0.9rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.text-input {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: white;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.text-input:focus {
-  border-color: var(--accent);
-}
-
-.radio-group {
-  display: flex;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  padding: 4px;
-}
-
-.radio-group button {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  padding: 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-}
-
-.radio-group button.active {
-  background: var(--accent);
-  color: white;
-  font-weight: 600;
-}
-
-/* Sliders */
-.sliders {
-  gap: 12px;
-}
-
-.slider-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.slider-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-}
-
-.slider-header .value {
-  color: var(--accent);
-  font-family: monospace;
-}
-
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  outline: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  background: var(--accent);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 0 8px var(--accent-glow);
-}
-
-.convert-btn {
-  margin-top: auto;
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  border: none;
-  padding: 14px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-}
-
-.convert-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-}
-
-.convert-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.convert-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  filter: grayscale(1);
-}
-
-/* Content */
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #020617;
-}
-
-.viewer-container {
-  flex: 1;
-  padding: 24px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.image-viewer {
-  display: flex;
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-}
-
-.placeholder {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: var(--text-dim);
-  font-style: italic;
-  font-size: 0.9rem;
-  text-align: center;
-}
-
-.image-path-info {
-  background: rgba(16, 185, 129, 0.05);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 12px;
-  padding: 24px;
-  text-align: center;
-}
-
-.image-path-info code {
-  display: block;
-  margin-top: 12px;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 6px;
-  word-break: break-all;
-  color: var(--accent);
-}
-.image-path-info.mini {
-  padding: 8px 16px;
-  font-size: 0.75rem;
-}
-
-.image-preview-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  flex: 1;
-}
-
-.ascii-image {
-  max-width: 100%;
-  max-height: 70vh;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--glass-border);
-}
-
-.loader {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Responsive Design */
-@media (max-width: 900px) {
-  .app-container {
-    flex-direction: column;
-    overflow: auto;
-  }
-
-  .sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 400px;
-    border-right: none;
-    border-bottom: 1px solid var(--glass-border);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .content {
-    min-height: 400px;
-  }
-
-  .ascii-image {
-    max-height: 50vh;
-  }
-
-  .viewer-container {
-    padding: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .sidebar {
-    padding: 16px;
-    max-height: 350px;
-  }
-
-  .logo-section h1 {
-    font-size: 1.2rem;
-  }
-
-  .convert-btn {
-    padding: 12px;
-    font-size: 0.9rem;
-  }
-}
+<style scoped>
+/* Scoped styles removed in favor of Tailwind CSS */
 </style>
