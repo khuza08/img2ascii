@@ -12,7 +12,6 @@ use rayon::prelude::*;
 pub struct ConversionParams {
     filepath: String,
     output_name: String,
-    orientation: String,
     scale_factor: f32,
     brightness: f32,
     contrast: f32,
@@ -67,23 +66,16 @@ async fn convert_image(
     // 2. Resize First (Optimization)
     let (orig_width, orig_height) = img.dimensions();
     
-    let mut target_w = if params.orientation == "L" {
-        (params.scale_factor * orig_width as f32) as u32
-    } else {
-        (params.scale_factor * orig_width as f32 * (ONE_CHAR_HEIGHT as f32 / ONE_CHAR_WIDTH as f32)) as u32
-    };
+    // Compensate for character aspect ratio (characters are taller than they are wide)
+    // We multiply width by 1.8 to get correct proportions in the final output
+    let mut target_w = (params.scale_factor * orig_width as f32 * (ONE_CHAR_HEIGHT as f32 / ONE_CHAR_WIDTH as f32)) as u32;
     
     if target_w > MAX_ASCII_WIDTH {
         target_w = MAX_ASCII_WIDTH;
     }
     
-    let final_scale = target_w as f32 / (if params.orientation == "L" { orig_width as f32 } else { orig_width as f32 * (ONE_CHAR_HEIGHT as f32 / ONE_CHAR_WIDTH as f32) });
-    
-    let target_h = if params.orientation == "L" {
-        (final_scale * orig_height as f32 * (ONE_CHAR_WIDTH as f32 / ONE_CHAR_HEIGHT as f32)) as u32
-    } else {
-        (final_scale * orig_height as f32) as u32
-    };
+    let final_scale = target_w as f32 / (orig_width as f32 * (ONE_CHAR_HEIGHT as f32 / ONE_CHAR_WIDTH as f32));
+    let target_h = (final_scale * orig_height as f32) as u32;
     
     let resized = img.resize_exact(target_w, target_h, image::imageops::FilterType::Nearest);
     let mut resized_rgb = resized.to_rgb8();

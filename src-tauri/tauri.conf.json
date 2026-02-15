@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "img2ascii-tauri",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "backgroundColor": "#0f172a",
+        "visible": false
       }
     ],
     "security": {

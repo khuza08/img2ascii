@@ -14,7 +14,6 @@ interface ConversionResult {
 const filepath = ref("");
 const filename = ref("No image selected");
 const outputName = ref("ascii_output");
-const orientation = ref("P");
 const scaleFactor = ref(0.1);
 const brightness = ref(1.0);
 const contrast = ref(1.0);
@@ -35,7 +34,6 @@ async function convert() {
       params: {
         filepath: filepath.value,
         output_name: outputName.value,
-        orientation: orientation.value,
         scale_factor: scaleFactor.value,
         brightness: brightness.value,
         contrast: contrast.value,
@@ -64,12 +62,7 @@ async function openResultImage() {
 
 // Initial convert on load logic elsewhere...
 
-// Watchers for live editing
-watch(orientation, () => {
-  if (filepath.value) {
-    convert();
-  }
-});
+
 
 // Watch filepath to trigger initial conversion
 watch(filepath, () => {
@@ -92,7 +85,7 @@ async function selectImage() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   // Correct method name for Tauri v2 is onDragDropEvent
   (getCurrentWindow() as any).onDragDropEvent((event: any) => {
     if (event.payload.type === 'drop') {
@@ -103,6 +96,9 @@ onMounted(() => {
       }
     }
   });
+
+  // Show window once UI is ready (Anti-Flashbang)
+  await getCurrentWindow().show();
 });
 </script>
 
@@ -129,19 +125,7 @@ onMounted(() => {
         <input v-model="outputName" placeholder="filename" class="text-input" />
       </div>
 
-      <div class="control-group">
-        <label>Orientation</label>
-        <div class="radio-group">
-          <button 
-            :class="{ active: orientation === 'P' }" 
-            @click="orientation = 'P'"
-          >Portrait</button>
-          <button 
-            :class="{ active: orientation === 'L' }" 
-            @click="orientation = 'L'"
-          >Landscape</button>
-        </div>
-      </div>
+
 
       <div class="control-group sliders">
         <div class="slider-item">
@@ -508,5 +492,52 @@ input[type="range"]::-webkit-slider-thumb {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+  .app-container {
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    border-right: none;
+    border-bottom: 1px solid var(--glass-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .content {
+    min-height: 400px;
+  }
+
+  .ascii-image {
+    max-height: 50vh;
+  }
+
+  .viewer-container {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    padding: 16px;
+    max-height: 350px;
+  }
+
+  .logo-section h1 {
+    font-size: 1.2rem;
+  }
+
+  .convert-btn {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
 }
 </style>

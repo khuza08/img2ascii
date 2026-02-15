@@ -17,6 +17,8 @@
       ]
     },
     "opener:allow-reveal-item-in-dir",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "core:window:allow-show",
+    "core:window:allow-hide"
   ]
 }
