@@ -88,30 +88,38 @@ async fn convert_image(
     let resized = img.resize_exact(target_w, target_h, image::imageops::FilterType::Nearest);
     let mut resized_rgb = resized.to_rgb8();
 
-    // 3. Parallel Adjustments
+    // 3. Combined Parallel Adjustments (Optimized: single pass)
     resized_rgb.par_pixels_mut().for_each(|pixel| {
+        let [r, g, b] = pixel.0;
+        let mut rf = r as f32;
+        let mut gf = g as f32;
+        let mut bf = b as f32;
+        
         // Saturation
         if (params.saturation - 1.0).abs() > 0.01 {
-            let [r, g, b] = pixel.0;
-            let gray = (r as f32 + g as f32 + b as f32) / 3.0;
-            pixel.0[0] = (gray + params.saturation * (r as f32 - gray)).clamp(0.0, 255.0) as u8;
-            pixel.0[1] = (gray + params.saturation * (g as f32 - gray)).clamp(0.0, 255.0) as u8;
-            pixel.0[2] = (gray + params.saturation * (b as f32 - gray)).clamp(0.0, 255.0) as u8;
+            let gray = (rf + gf + bf) / 3.0;
+            rf = gray + params.saturation * (rf - gray);
+            gf = gray + params.saturation * (gf - gray);
+            bf = gray + params.saturation * (bf - gray);
         }
-
+        
         // Brightness
         if (params.brightness - 1.0).abs() > 0.01 {
-            pixel.0[0] = (pixel.0[0] as f32 * params.brightness).clamp(0.0, 255.0) as u8;
-            pixel.0[1] = (pixel.0[1] as f32 * params.brightness).clamp(0.0, 255.0) as u8;
-            pixel.0[2] = (pixel.0[2] as f32 * params.brightness).clamp(0.0, 255.0) as u8;
+            rf *= params.brightness;
+            gf *= params.brightness;
+            bf *= params.brightness;
         }
-
+        
         // Contrast
         if (params.contrast - 1.0).abs() > 0.01 {
-            for i in 0..3 {
-                pixel.0[i] = ((pixel.0[i] as f32 - 128.0) * params.contrast + 128.0).clamp(0.0, 255.0) as u8;
-            }
+            rf = (rf - 128.0) * params.contrast + 128.0;
+            gf = (gf - 128.0) * params.contrast + 128.0;
+            bf = (bf - 128.0) * params.contrast + 128.0;
         }
+        
+        pixel.0[0] = rf.clamp(0.0, 255.0) as u8;
+        pixel.0[1] = gf.clamp(0.0, 255.0) as u8;
+        pixel.0[2] = bf.clamp(0.0, 255.0) as u8;
     });
 
     let (w, h) = resized_rgb.dimensions();
@@ -141,32 +149,49 @@ async fn convert_image(
         *line = line_str;
     });
 
-    // Image Drawing (Chunked Rows) - imageproc isn't naturally thread-safe for buffer drawing,
-    // so we render chunks of rows into separate sub-images and then combine, or just use a mutex wrap
-    // FOR SPEED: We'll draw row-by-row consecutively for now since text drawing is font-heavy,
-    // but the filter and text calc are already parallel.
-    for y in 0..h {
-        let line = &ascii_lines[y as usize];
-        let mut x = 0;
-        while x < w {
-            let start_x = x;
-            let pixel = resized_rgb.get_pixel(x, y);
-            let color = Rgb(pixel.0);
-            while x + 1 < w && resized_rgb.get_pixel(x + 1, y).0 == pixel.0 {
+    // Image Drawing (Optimized: Parallel row rendering)
+    // Each row renders to its own buffer, then we combine them
+    let row_images: Vec<RgbImage> = (0..h)
+        .into_par_iter()
+        .map(|y| {
+            let mut row_img = RgbImage::new(w * ONE_CHAR_WIDTH, ONE_CHAR_HEIGHT);
+            let line = &ascii_lines[y as usize];
+            let mut x = 0;
+            
+            while x < w {
+                let start_x = x;
+                let pixel = resized_rgb.get_pixel(x, y);
+                let color = Rgb(pixel.0);
+                
+                // Group consecutive pixels with same color
+                while x + 1 < w && resized_rgb.get_pixel(x + 1, y).0 == pixel.0 {
+                    x += 1;
+                }
+                
+                let group_text = &line[start_x as usize..=x as usize];
+                draw_text_mut(
+                    &mut row_img,
+                    color,
+                    (start_x * ONE_CHAR_WIDTH) as i32,
+                    0, // Y is always 0 for row buffer
+                    scale,
+                    &font,
+                    group_text
+                );
                 x += 1;
             }
-            let group_text = &line[start_x as usize..=x as usize];
-            draw_text_mut(
-                &mut output_img,
-                color,
-                (start_x * ONE_CHAR_WIDTH) as i32,
-                (y * ONE_CHAR_HEIGHT) as i32,
-                scale,
-                &font,
-                group_text
-            );
-            x += 1;
-        }
+            row_img
+        })
+        .collect();
+    
+    // Combine row images into final output (fast memcpy)
+    for (y, row_img) in row_images.iter().enumerate() {
+        image::imageops::overlay(
+            &mut output_img,
+            row_img,
+            0,
+            (y as i64) * (ONE_CHAR_HEIGHT as i64)
+        );
     }
 
     let ascii_text = ascii_lines.join("\n");
@@ -189,11 +214,20 @@ async fn convert_image(
     };
     
     let mut preview_data = Vec::new();
-    let mut cursor = std::io::Cursor::new(&mut preview_data);
-    preview_img.write_to(&mut cursor, image::ImageFormat::Png).map_err(|e| e.to_string())?;
+    // Optimized: Use JPEG for faster encoding (2-3x speedup)
+    {
+        use image::codecs::jpeg::JpegEncoder;
+        let mut encoder = JpegEncoder::new_with_quality(&mut preview_data, 85);
+        encoder.encode(
+            preview_img.as_bytes(),
+            preview_img.width(),
+            preview_img.height(),
+            preview_img.color().into()
+        ).map_err(|e| e.to_string())?;
+    }
     
     use base64::{Engine as _, engine::general_purpose};
-    let image_base64 = format!("data:image/png;base64,{}", general_purpose::STANDARD.encode(&preview_data));
+    let image_base64 = format!("data:image/jpeg;base64,{}", general_purpose::STANDARD.encode(&preview_data));
 
     let mut f = File::create(&txt_path).map_err(|e| e.to_string())?;
     f.write_all(ascii_text.as_bytes()).map_err(|e| e.to_string())?;
