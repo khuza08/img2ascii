@@ -1,0 +1,518 @@
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+
+interface ConversionParams {
+  filepath: string;
+  output_name: string;
+  orientation: string;
+  scale_factor: number;
+  brightness: number;
+  contrast: number;
+  saturation: number;
+}
+
+interface ConversionResult {
+  text: string;
+  image_path: string;
+  txt_path: string;
+}
+
+const filepath = ref("");
+const filename = ref("No image selected");
+const outputName = ref("ascii_output");
+const orientation = ref("P");
+const scaleFactor = ref(0.1);
+const brightness = ref(1.2);
+const contrast = ref(1.3);
+const saturation = ref(1.3);
+const isConverting = ref(false);
+const asciiText = ref("");
+const resultImagePath = ref("");
+const activeTab = ref("text");
+
+async function selectImage() {
+  const selected = await open({
+    multiple: false,
+    filters: [{
+      name: 'Image',
+      extensions: ['png', 'jpg', 'jpeg', 'bmp', 'gif']
+    }]
+  });
+  if (selected && !Array.isArray(selected)) {
+    filepath.value = selected;
+    filename.value = selected.split(/[\/\\]/).pop() || selected;
+  }
+}
+
+async function convert() {
+  if (!filepath.value) return;
+  
+  isConverting.value = true;
+  try {
+    const result = await invoke<ConversionResult>("convert_image", {
+      params: {
+        filepath: filepath.value,
+        output_name: outputName.value,
+        orientation: orientation.value,
+        scale_factor: scaleFactor.value,
+        brightness: brightness.value,
+        contrast: contrast.value,
+        saturation: saturation.value
+      }
+    });
+    
+    asciiText.value = result.text;
+    resultImagePath.value = result.image_path;
+    activeTab.value = "text";
+  } catch (error) {
+    console.error(error);
+    alert("Conversion failed: " + error);
+  } finally {
+    isConverting.value = false;
+  }
+}
+
+onMounted(() => {
+  getCurrentWindow().onFileDropEvent((event) => {
+    if (event.payload.type === 'drop') {
+      const droppedPath = event.payload.paths[0];
+      if (droppedPath) {
+        filepath.value = droppedPath;
+        filename.value = droppedPath.split(/[\/\\]/).pop() || droppedPath;
+      }
+    }
+  });
+});
+</script>
+
+<template>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="logo-section">
+        <h1>img2ascii</h1>
+        <p class="subtitle">by khuza08 (Pure Rust)</p>
+      </div>
+
+      <div class="control-group">
+        <label>Input</label>
+        <div class="file-picker" @click="selectImage">
+          <div class="icon">📁</div>
+          <div class="file-info">
+            <span class="file-name">{{ filename }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Output Filename</label>
+        <input v-model="outputName" placeholder="filename" class="text-input" />
+      </div>
+
+      <div class="control-group">
+        <label>Orientation</label>
+        <div class="radio-group">
+          <button 
+            :class="{ active: orientation === 'P' }" 
+            @click="orientation = 'P'"
+          >Portrait</button>
+          <button 
+            :class="{ active: orientation === 'L' }" 
+            @click="orientation = 'L'"
+          >Landscape</button>
+        </div>
+      </div>
+
+      <div class="control-group sliders">
+        <div class="slider-item">
+          <div class="slider-header">
+            <span>Scale Factor</span>
+            <span class="value">{{ scaleFactor.toFixed(2) }}</span>
+          </div>
+          <input type="range" v-model.number="scaleFactor" min="0.05" max="1.0" step="0.01" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-header">
+            <span>Brightness</span>
+            <span class="value">{{ brightness.toFixed(2) }}</span>
+          </div>
+          <input type="range" v-model.number="brightness" min="0.5" max="2.0" step="0.05" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-header">
+            <span>Contrast</span>
+            <span class="value">{{ contrast.toFixed(2) }}</span>
+          </div>
+          <input type="range" v-model.number="contrast" min="0.5" max="2.0" step="0.05" />
+        </div>
+
+        <div class="slider-item">
+          <div class="slider-header">
+            <span>Saturation</span>
+            <span class="value">{{ saturation.toFixed(2) }}</span>
+          </div>
+          <input type="range" v-model.number="saturation" min="0.5" max="2.0" step="0.05" />
+        </div>
+      </div>
+
+      <button class="convert-btn" :disabled="!filepath || isConverting" @click="convert">
+        <span v-if="!isConverting">Convert (Rust Engine)</span>
+        <span v-else class="loader"></span>
+      </button>
+    </aside>
+
+    <main class="content">
+      <div class="tabs">
+        <button 
+          :class="{ active: activeTab === 'text' }" 
+          @click="activeTab = 'text'"
+        >ASCII Text</button>
+        <button 
+          :class="{ active: activeTab === 'image' }" 
+          @click="activeTab = 'image'"
+        >ASCII Image</button>
+      </div>
+
+      <div class="viewer-container">
+        <div v-if="activeTab === 'text'" class="text-viewer">
+          <pre v-if="asciiText">{{ asciiText }}</pre>
+          <div v-else class="placeholder">Result will appear here</div>
+        </div>
+        <div v-else class="image-viewer">
+          <div v-if="resultImagePath" class="image-path-info">
+            <p>ASCII Image saved to:</p>
+            <code>{{ resultImagePath }}</code>
+          </div>
+          <div v-else class="placeholder">Result will appear here</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<style>
+:root {
+  --bg-dark: #0f172a;
+  --bg-sidebar: rgba(15, 23, 42, 0.8);
+  --accent: #10b981; /* Green for Rust */
+  --accent-glow: rgba(16, 185, 129, 0.3);
+  --text-main: #f8fafc;
+  --text-dim: #94a3b8;
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  overflow: hidden;
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 320px;
+  background: var(--bg-sidebar);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--glass-border);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.logo-section h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  background: linear-gradient(to right, #10b981, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-group label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.file-picker {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--glass-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-picker:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.icon {
+  font-size: 1.5rem;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.file-name {
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.text-input:focus {
+  border-color: var(--accent);
+}
+
+.radio-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.radio-group button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.radio-group button.active {
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+
+/* Sliders */
+.sliders {
+  gap: 12px;
+}
+
+.slider-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.slider-header .value {
+  color: var(--accent);
+  font-family: monospace;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.convert-btn {
+  margin-top: auto;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.convert-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.convert-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.convert-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+/* Content */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #020617;
+}
+
+.tabs {
+  display: flex;
+  padding: 12px 24px;
+  gap: 24px;
+  background: rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.tabs button {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.tabs button.active {
+  color: var(--accent);
+}
+
+.tabs button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.viewer-container {
+  flex: 1;
+  padding: 24px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-viewer {
+  background: #000;
+  border-radius: 12px;
+  padding: 20px;
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--glass-border);
+}
+
+.text-viewer pre {
+  margin: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 6px;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.placeholder {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-dim);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.image-path-info {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+.image-path-info code {
+  display: block;
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  word-break: break-all;
+  color: var(--accent);
+}
+
+.loader {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>

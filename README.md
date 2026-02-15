@@ -1,15 +1,7 @@
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Platform](https://img.shields.io/badge/platform-cross--platform-lightgrey)
+# Tauri + Vue + TypeScript
 
-# How to install
+This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
 
+## Recommended IDE Setup
 
-### Linux
-```
-git clone https://github.com/khuza08/img2ascii.git 
-pip install -r requirements.txt (or install dependency manually: pillow, psutil, tkinterdnd2, tk)
-./img2ascii.py
-```
-### Windows
-[release page](https://github.com/khuza08/img2ascii/releases)
+- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
