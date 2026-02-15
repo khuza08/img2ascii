@@ -3,19 +3,9 @@ import { ref, onMounted, watch } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-
-interface ConversionParams {
-  filepath: string;
-  output_name: string;
-  orientation: string;
-  scale_factor: number;
-  brightness: number;
-  contrast: number;
-  saturation: number;
-}
+import { openPath } from "@tauri-apps/plugin-opener";
 
 interface ConversionResult {
-  text: string;
   image_path: string;
   image_base64: string;
   txt_path: string;
@@ -26,14 +16,13 @@ const filename = ref("No image selected");
 const outputName = ref("ascii_output");
 const orientation = ref("P");
 const scaleFactor = ref(0.1);
-const brightness = ref(1.2);
-const contrast = ref(1.3);
-const saturation = ref(1.3);
+const brightness = ref(1.0);
+const contrast = ref(1.0);
+const saturation = ref(1.0);
 const isConverting = ref(false);
-const asciiText = ref("");
+
 const resultImagePath = ref("");
 const displayImagePath = ref("");
-const activeTab = ref("text");
 
 // Debounce logic for live editing
 let debounceTimer: number | null = null;
@@ -56,13 +45,22 @@ async function convert() {
       }
     });
     
-    asciiText.value = result.text;
     resultImagePath.value = result.image_path;
-    displayImagePath.value = result.image_base64; // Use base64 directly
+    displayImagePath.value = result.image_base64;
   } catch (error) {
     console.error(error);
   } finally {
     isConverting.value = false;
+  }
+}
+
+async function openResultImage() {
+  if (resultImagePath.value) {
+    try {
+      await openPath(resultImagePath.value);
+    } catch (error) {
+      console.error("Failed to open image:", error);
+    }
   }
 }
 
@@ -97,12 +95,12 @@ async function selectImage() {
   });
   if (selected && !Array.isArray(selected)) {
     filepath.value = selected;
-    filename.value = selected.split(/[\/\\]/).pop() || selected;
+    filename.value = selected.split(/[/\\]/).pop() || selected;
   }
 }
 
 onMounted(() => {
-  getCurrentWindow().onFileDropEvent((event) => {
+  (getCurrentWindow() as any).onFileDropEvent((event: any) => {
     if (event.payload.type === 'drop') {
       const droppedPath = event.payload.paths[0];
       if (droppedPath) {
@@ -185,39 +183,30 @@ onMounted(() => {
         </div>
       </div>
 
-      <button class="convert-btn" :disabled="!filepath || isConverting" @click="convert">
+      <button 
+        class="convert-btn" 
+        :disabled="!filepath || isConverting" 
+        @click="resultImagePath ? openResultImage() : convert()"
+      >
         <span v-if="!isConverting">
-          {{ filepath ? 'Live Mode Active' : 'Convert (Rust Engine)' }}
+          {{ resultImagePath ? 'Open Result Image' : (filepath ? 'Live Mode Active' : 'Convert (Rust Engine)') }}
         </span>
         <span v-else class="loader"></span>
       </button>
     </aside>
 
     <main class="content">
-      <div class="tabs">
-        <button 
-          :class="{ active: activeTab === 'text' }" 
-          @click="activeTab = 'text'"
-        >ASCII Text</button>
-        <button 
-          :class="{ active: activeTab === 'image' }" 
-          @click="activeTab = 'image'"
-        >ASCII Image</button>
-      </div>
-
       <div class="viewer-container">
-        <div v-if="activeTab === 'text'" class="text-viewer">
-          <pre v-if="asciiText">{{ asciiText }}</pre>
-          <div v-else class="placeholder">Result will appear here</div>
-        </div>
-        <div v-else class="image-viewer">
+        <div class="image-viewer">
           <div v-if="displayImagePath" class="image-preview-container">
             <img :src="displayImagePath" alt="ASCII Art" class="ascii-image" />
             <div class="image-path-info mini">
               <code>{{ resultImagePath }}</code>
             </div>
           </div>
-          <div v-else class="placeholder">Result will appear here</div>
+          <div v-else class="placeholder">
+            {{ isConverting ? 'Processing Image...' : 'Select an image to start' }}
+          </div>
         </div>
       </div>
     </main>
@@ -268,6 +257,7 @@ body {
   font-size: 1.5rem;
   background: linear-gradient(to right, #10b981, #3b82f6);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -389,6 +379,7 @@ body {
 
 input[type="range"] {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   height: 4px;
   background: rgba(255, 255, 255, 0.1);
@@ -446,41 +437,6 @@ input[type="range"]::-webkit-slider-thumb {
   background: #020617;
 }
 
-.tabs {
-  display: flex;
-  padding: 12px 24px;
-  gap: 24px;
-  background: rgba(15, 23, 42, 0.5);
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.tabs button {
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 8px 0;
-  position: relative;
-  transition: color 0.2s;
-}
-
-.tabs button.active {
-  color: var(--accent);
-}
-
-.tabs button.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--accent);
-  border-radius: 2px;
-}
-
 .viewer-container {
   flex: 1;
   padding: 24px;
@@ -489,31 +445,23 @@ input[type="range"]::-webkit-slider-thumb {
   flex-direction: column;
 }
 
-.text-viewer {
-  background: #000;
-  border-radius: 12px;
-  padding: 20px;
+.image-viewer {
+  display: flex;
   flex: 1;
-  overflow: auto;
-  border: 1px solid var(--glass-border);
-}
-
-.text-viewer pre {
-  margin: 0;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 6px;
-  line-height: 1.1;
-  color: #fff;
+  justify-content: center;
+  align-items: center;
 }
 
 .placeholder {
   height: 100%;
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
   color: var(--text-dim);
   font-style: italic;
   font-size: 0.9rem;
+  text-align: center;
 }
 
 .image-path-info {

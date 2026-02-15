@@ -27,4 +27,6 @@ image = "0.25.9"
 ab_glyph = "0.2.32"
 imageproc = { version = "0.26.0", features = ["default"] }
 tauri-plugin-dialog = "2.6.0"
+rayon = "1.10.0"
+parking_lot = "0.12.3"
 

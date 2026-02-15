@@ -22,3 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+src-tauri/ascii_output.png
+src-tauri/ascii_output.txt
