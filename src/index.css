@@ -10,7 +10,7 @@
 
 @layer base {
   body {
-    @apply bg-[var(--bg-dark)] text-white overflow-hidden;
+    @apply bg-transparent text-white overflow-hidden;
   }
 }
 

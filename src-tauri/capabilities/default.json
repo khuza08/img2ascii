@@ -19,6 +19,11 @@
     "opener:allow-reveal-item-in-dir",
     "dialog:allow-open",
     "core:window:allow-show",
-    "core:window:allow-hide"
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-start-dragging"
   ]
 }
