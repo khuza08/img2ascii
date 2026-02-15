@@ -52,6 +52,30 @@ class ASCIIArtConverterApp:
         
         # bind cleanup to window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
+        # setup traces for sliders
+        self.setup_traces()
+    
+    def setup_traces(self):
+        """Set up traces to update slider labels when values change"""
+        self.scaleFactor.trace_add("write", lambda *args: self.update_slider_labels())
+        self.brightness.trace_add("write", lambda *args: self.update_slider_labels())
+        self.contrast.trace_add("write", lambda *args: self.update_slider_labels())
+        self.saturation.trace_add("write", lambda *args: self.update_slider_labels())
+        
+        # Initial update
+        self.update_slider_labels()
+
+    def update_slider_labels(self):
+        """Update the text labels showing current slider values"""
+        if hasattr(self, 'scale_val_label'):
+            self.scale_val_label.config(text=f"{self.scaleFactor.get():.2f}")
+        if hasattr(self, 'brightness_val_label'):
+            self.brightness_val_label.config(text=f"{self.brightness.get():.2f}")
+        if hasattr(self, 'contrast_val_label'):
+            self.contrast_val_label.config(text=f"{self.contrast.get():.2f}")
+        if hasattr(self, 'saturation_val_label'):
+            self.saturation_val_label.config(text=f"{self.saturation.get():.2f}")
     
     def create_widgets(self):
         # main frame
@@ -116,24 +140,44 @@ class ASCIIArtConverterApp:
         advanced_frame.pack(fill=tk.X, padx=10, pady=10)
         
         # scalefactor
-        tk.Label(advanced_frame, text="Scale Factor:",fg="white", bg="#2d2d2d").pack(anchor=tk.W, padx=5, pady=(5, 0))
+        scale_label_frame = tk.Frame(advanced_frame, bg="#2d2d2d")
+        scale_label_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
+        tk.Label(scale_label_frame, text="Scale Factor:", fg="white", bg="#2d2d2d").pack(side=tk.LEFT)
+        self.scale_val_label = tk.Label(scale_label_frame, text="0.10", fg="#aaaaaa", bg="#2d2d2d")
+        self.scale_val_label.pack(side=tk.RIGHT)
+        
         scale_slider = ttk.Scale(advanced_frame, from_=0.1, to=1.0, variable=self.scaleFactor, orient=tk.HORIZONTAL)
-        scale_slider.pack(fill=tk.X, padx=5, pady=5)
+        scale_slider.pack(fill=tk.X, padx=5, pady=(0, 5))
         
         # brightness
-        tk.Label(advanced_frame, text="Brightness:",fg="white", bg="#2d2d2d").pack(anchor=tk.W, padx=5, pady=(5, 0))
+        brightness_label_frame = tk.Frame(advanced_frame, bg="#2d2d2d")
+        brightness_label_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
+        tk.Label(brightness_label_frame, text="Brightness:", fg="white", bg="#2d2d2d").pack(side=tk.LEFT)
+        self.brightness_val_label = tk.Label(brightness_label_frame, text="1.20", fg="#aaaaaa", bg="#2d2d2d")
+        self.brightness_val_label.pack(side=tk.RIGHT)
+        
         brightness_slider = ttk.Scale(advanced_frame, from_=0.5, to=2.0, variable=self.brightness, orient=tk.HORIZONTAL)
-        brightness_slider.pack(fill=tk.X, padx=5, pady=5)
+        brightness_slider.pack(fill=tk.X, padx=5, pady=(0, 5))
         
         # contrast
-        tk.Label(advanced_frame, text="Contrast:",fg="white", bg="#2d2d2d").pack(anchor=tk.W, padx=5, pady=(5, 0))
+        contrast_label_frame = tk.Frame(advanced_frame, bg="#2d2d2d")
+        contrast_label_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
+        tk.Label(contrast_label_frame, text="Contrast:", fg="white", bg="#2d2d2d").pack(side=tk.LEFT)
+        self.contrast_val_label = tk.Label(contrast_label_frame, text="1.30", fg="#aaaaaa", bg="#2d2d2d")
+        self.contrast_val_label.pack(side=tk.RIGHT)
+        
         contrast_slider = ttk.Scale(advanced_frame, from_=0.5, to=2.0, variable=self.contrast, orient=tk.HORIZONTAL)
-        contrast_slider.pack(fill=tk.X, padx=5, pady=5)
+        contrast_slider.pack(fill=tk.X, padx=5, pady=(0, 5))
         
         # saturation
-        tk.Label(advanced_frame, text="Saturation:",fg="white", bg="#2d2d2d").pack(anchor=tk.W, padx=5, pady=(5, 0))
+        saturation_label_frame = tk.Frame(advanced_frame, bg="#2d2d2d")
+        saturation_label_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
+        tk.Label(saturation_label_frame, text="Saturation:", fg="white", bg="#2d2d2d").pack(side=tk.LEFT)
+        self.saturation_val_label = tk.Label(saturation_label_frame, text="1.30", fg="#aaaaaa", bg="#2d2d2d")
+        self.saturation_val_label.pack(side=tk.RIGHT)
+        
         saturation_slider = ttk.Scale(advanced_frame, from_=0.5, to=2.0, variable=self.saturation, orient=tk.HORIZONTAL)
-        saturation_slider.pack(fill=tk.X, padx=5, pady=5)
+        saturation_slider.pack(fill=tk.X, padx=5, pady=(0, 10))
         
         # clean memory  (Optional - for debugging)
         # tk.Button(left_frame, text="Clean Memory", command=self.force_cleanup, bg="#2d2d2d", fg="white").pack(fill=tk.X, padx=10, pady=5)
