@@ -24,9 +24,7 @@ const isConverting = ref(false);
 const resultImagePath = ref("");
 const displayImagePath = ref("");
 
-// Debounce logic for live editing
-let debounceTimer: number | null = null;
-const DEBOUNCE_DELAY = 150; // ms
+
 
 async function convert() {
   if (!filepath.value) return;
@@ -64,17 +62,12 @@ async function openResultImage() {
   }
 }
 
-function triggerLiveConvert() {
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    convert();
-  }, DEBOUNCE_DELAY);
-}
+// Initial convert on load logic elsewhere...
 
 // Watchers for live editing
-watch([orientation, scaleFactor, brightness, contrast, saturation], () => {
+watch(orientation, () => {
   if (filepath.value) {
-    triggerLiveConvert();
+    convert();
   }
 });
 
@@ -156,7 +149,7 @@ onMounted(() => {
             <span>Scale Factor</span>
             <span class="value">{{ scaleFactor.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="scaleFactor" min="0.05" max="1.0" step="0.01" />
+          <input type="range" v-model.number="scaleFactor" min="0.05" max="1.0" step="0.01" @change="convert" />
         </div>
 
         <div class="slider-item">
@@ -164,7 +157,7 @@ onMounted(() => {
             <span>Brightness</span>
             <span class="value">{{ brightness.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="brightness" min="0.5" max="2.0" step="0.05" />
+          <input type="range" v-model.number="brightness" min="0.5" max="2.0" step="0.05" @change="convert" />
         </div>
 
         <div class="slider-item">
@@ -172,7 +165,7 @@ onMounted(() => {
             <span>Contrast</span>
             <span class="value">{{ contrast.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="contrast" min="0.5" max="2.0" step="0.05" />
+          <input type="range" v-model.number="contrast" min="0.5" max="2.0" step="0.05" @change="convert" />
         </div>
 
         <div class="slider-item">
@@ -180,7 +173,7 @@ onMounted(() => {
             <span>Saturation</span>
             <span class="value">{{ saturation.toFixed(2) }}</span>
           </div>
-          <input type="range" v-model.number="saturation" min="0.5" max="2.0" step="0.05" />
+          <input type="range" v-model.number="saturation" min="0.5" max="2.0" step="0.05" @change="convert" />
         </div>
       </div>
 
