@@ -29,77 +29,73 @@ pub struct ConversionResult {
 const CHARS: &str = " .'`^ \",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
 const ONE_CHAR_WIDTH: u32 = 10;
 const ONE_CHAR_HEIGHT: u32 = 18;
+const MAX_ASCII_WIDTH: u32 = 400; // Safety limit to prevent freezes
 
 #[tauri::command]
 async fn convert_image(params: ConversionParams) -> Result<ConversionResult, String> {
     // 1. Load Image
-    let mut img = image::open(&params.filepath)
+    let img = image::open(&params.filepath)
         .map_err(|e| format!("Failed to open image: {e}"))?;
 
-    // 2. Adjustments (matching PIL's behavior as closely as possible)
+    // 2. Resize First (Optimization)
+    let (orig_width, orig_height) = img.dimensions();
+    
+    // Calculate raw target dimensions
+    let mut target_w = if params.orientation == "L" {
+        (params.scale_factor * orig_width as f32) as u32
+    } else {
+        (params.scale_factor * orig_width as f32 * (ONE_CHAR_HEIGHT as f32 / ONE_CHAR_WIDTH as f32)) as u32
+    };
+    
+    // Apply safety cap
+    if target_w > MAX_ASCII_WIDTH {
+        target_w = MAX_ASCII_WIDTH;
+    }
+    
+    // Maintain aspect ratio based on the (possibly capped) width
+    let final_scale = target_w as f32 / (if params.orientation == "L" { orig_width as f32 } else { orig_width as f32 * (ONE_CHAR_HEIGHT as f32 / ONE_CHAR_WIDTH as f32) });
+    
+    let target_h = if params.orientation == "L" {
+        (final_scale * orig_height as f32 * (ONE_CHAR_WIDTH as f32 / ONE_CHAR_HEIGHT as f32)) as u32
+    } else {
+        (final_scale * orig_height as f32) as u32
+    };
+    
+    let resized = img.resize_exact(target_w, target_h, image::imageops::FilterType::Nearest);
+    let mut resized_rgb = resized.to_rgb8();
+
+    // 3. Adjustments on the small image
     
     // Saturation (Color Enhancement)
-    // PIL's Color.enhance(factor): 0.0 is grayscale, 1.0 is original.
-    // result = grayscale * (1-factor) + original * factor
     if (params.saturation - 1.0).abs() > 0.01 {
-        let mut rgb_img = img.to_rgb8();
-        for pixel in rgb_img.pixels_mut() {
+        for pixel in resized_rgb.pixels_mut() {
             let [r, g, b] = pixel.0;
-            // Simple average matches the Python's intent for grayscale
             let gray = (r as f32 + g as f32 + b as f32) / 3.0;
-            
             pixel.0[0] = (gray + params.saturation * (r as f32 - gray)).clamp(0.0, 255.0) as u8;
             pixel.0[1] = (gray + params.saturation * (g as f32 - gray)).clamp(0.0, 255.0) as u8;
             pixel.0[2] = (gray + params.saturation * (b as f32 - gray)).clamp(0.0, 255.0) as u8;
         }
-        img = image::DynamicImage::ImageRgb8(rgb_img);
     }
 
     // Brightness
     if (params.brightness - 1.0).abs() > 0.01 {
-        // PIL brighten scale factor is multiplicative on pixels.
-        // image crate `brighten` is additive. We want multiplicative.
-        let mut rgb_img = img.to_rgb8();
-        for pixel in rgb_img.pixels_mut() {
+        for pixel in resized_rgb.pixels_mut() {
             pixel.0[0] = (pixel.0[0] as f32 * params.brightness).clamp(0.0, 255.0) as u8;
             pixel.0[1] = (pixel.0[1] as f32 * params.brightness).clamp(0.0, 255.0) as u8;
             pixel.0[2] = (pixel.0[2] as f32 * params.brightness).clamp(0.0, 255.0) as u8;
         }
-        img = image::DynamicImage::ImageRgb8(rgb_img);
     }
     
     // Contrast
     if (params.contrast - 1.0).abs() > 0.01 {
-        // image crate `adjust_contrast` takes percentage (-100 to 100) or similar? 
-        // Actually it takes f32: 0 is gray, 1 is original, >1 increases.
-        // Wait, different image crate versions have different signatures.
-        // Let's use manual to be safe and match PIL: (pixel - 128) * contrast + 128
-        let mut rgb_img = img.to_rgb8();
-        for pixel in rgb_img.pixels_mut() {
+        for pixel in resized_rgb.pixels_mut() {
             for i in 0..3 {
                 pixel.0[i] = ((pixel.0[i] as f32 - 128.0) * params.contrast + 128.0).clamp(0.0, 255.0) as u8;
             }
         }
-        img = image::DynamicImage::ImageRgb8(rgb_img);
     }
 
-    // 3. Resize
-    let (orig_width, orig_height) = img.dimensions();
-    let (new_width, new_height) = if params.orientation == "L" {
-        (
-            (params.scale_factor * orig_width as f32) as u32,
-            (params.scale_factor * orig_height as f32 * (ONE_CHAR_WIDTH as f32 / ONE_CHAR_HEIGHT as f32)) as u32
-        )
-    } else {
-        (
-            (params.scale_factor * orig_width as f32 * (ONE_CHAR_HEIGHT as f32 / ONE_CHAR_WIDTH as f32)) as u32,
-            (params.scale_factor * orig_height as f32) as u32
-        )
-    };
-    
-    let resized = img.resize_exact(new_width, new_height, image::imageops::FilterType::Nearest);
-    let (w, h) = resized.dimensions();
-    let resized_rgb = resized.to_rgb8();
+    let (w, h) = resized_rgb.dimensions();
     
     // 4. ASCII Conversion
     let char_array: Vec<char> = CHARS.chars().collect();
