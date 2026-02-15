@@ -22,5 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-*.png
-*.txt
+
+# ASCII Output
+src-tauri/*.png
+src-tauri/*.txt
+!src-tauri/icons/*.png

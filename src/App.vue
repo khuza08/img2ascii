@@ -100,12 +100,13 @@ async function selectImage() {
 }
 
 onMounted(() => {
-  (getCurrentWindow() as any).onFileDropEvent((event: any) => {
+  // Correct method name for Tauri v2 is onDragDropEvent
+  (getCurrentWindow() as any).onDragDropEvent((event: any) => {
     if (event.payload.type === 'drop') {
       const droppedPath = event.payload.paths[0];
       if (droppedPath) {
         filepath.value = droppedPath;
-        filename.value = droppedPath.split(/[\/\\]/).pop() || droppedPath;
+        filename.value = droppedPath.split(/[/\\]/).pop() || droppedPath;
       }
     }
   });
